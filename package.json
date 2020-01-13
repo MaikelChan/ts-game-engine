@@ -1,0 +1,23 @@
+{
+    "name": "ts-game-engine",
+    "version": "0.0.1",
+    "main": "index.js",
+    "keywords": ["webgl", "typescript", "game", "gamedev", "engine", "gameengine"],
+    "author": "MaikelChan",
+    "license": "MIT",
+    "description": "Simple WebGL game/render engine written in TypeScript",
+    "url": "https://github.com/MaikelChan/ts-game-engine",
+    "scripts": {
+        "clean": "rimraf lib",
+        "tsc": "tsc",
+        "build": "npm run clean && npm run tsc"
+    },
+    "dependencies": {
+        "gl-matrix": "^3.1.0"
+    },
+    "devDependencies": {
+        "@types/gl-matrix": "^2.4.5",
+        "rimraf": "^3.0.0",
+        "typescript": "^3.7.4"
+    }
+}
