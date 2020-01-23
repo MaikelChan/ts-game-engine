@@ -2,6 +2,7 @@ import { Material } from "./Material";
 import { POSITION_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, UniformTypes } from "./Shader";
 import { vec3 } from "gl-matrix";
 import { IGlobalUniforms } from "../Interfaces";
+import { Scene } from "..";
 
 export class UnlitColoredMaterial extends Material {
 
@@ -9,8 +10,8 @@ export class UnlitColoredMaterial extends Material {
     get Color(): vec3 { return this.color; }
     set Color(color: vec3) { this.color = color; }
 
-    constructor(context: WebGLRenderingContext) {
-        super(context, vsSource, fsSource);
+    constructor(scene: Scene) {
+        super(scene, vsSource, fsSource);
 
         this.Shader.DefineAttribute(POSITION_ATTRIBUTE);
 

@@ -1,11 +1,12 @@
 import { Material } from "./Material";
 import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, UniformTypes } from "./Shader";
 import { IGlobalUniforms } from "../Interfaces";
+import { Scene } from "..";
 
 export class VertexColoredMaterial extends Material {
 
-    constructor(context: WebGLRenderingContext) {
-        super(context, vsSource, fsSource);
+    constructor(scene: Scene) {
+        super(scene, vsSource, fsSource);
 
         this.Shader.DefineAttribute(POSITION_ATTRIBUTE);
         this.Shader.DefineAttribute(COLOR_ATTRIBUTE);

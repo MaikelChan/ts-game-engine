@@ -1,7 +1,10 @@
 import { IDisposable, IUniformData } from "../Interfaces";
 import { mat4, vec3, mat3, vec2 } from "gl-matrix";
+import { Texture2D } from "../Systems/Graphics/Texture2D";
+import { TEXTURE_UNIT_AMOUNT, PipelineState } from "../Systems/Graphics/PipelineState";
+import { Scene } from "..";
 
-export const enum UniformTypes { Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4 }
+export const enum UniformTypes { Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D }
 
 export const POSITION_ATTRIBUTE: string = "aPosition";
 export const COLOR_ATTRIBUTE: string = "aColor";
@@ -21,6 +24,7 @@ export const POINT_LIGHTS_DATA_UNIFORM: string = "uPointLightsData";
 export class Shader implements IDisposable {
 
     private context: WebGLRenderingContext;
+    private pipelineState: PipelineState;
 
     private program: WebGLProgram;
     get Program(): WebGLProgram { return this.program; }
@@ -31,8 +35,9 @@ export class Shader implements IDisposable {
     private uniforms: Map<string, IUniformData> = new Map<string, IUniformData>();
     get Uniforms(): Map<string, IUniformData> { return this.uniforms };
 
-    private constructor(context: WebGLRenderingContext, vsSource: string, fsSource: string) {
-        this.context = context;
+    private constructor(scene: Scene, vsSource: string, fsSource: string) {
+        this.context = scene.Game.GraphicsSystem.Context;
+        this.pipelineState = scene.Game.GraphicsSystem.PipelineState;
 
         const vertexShader: WebGLShader | null = this.CreateShader(WebGLRenderingContext.VERTEX_SHADER, vsSource);
         if (vertexShader === null) {
@@ -62,7 +67,7 @@ export class Shader implements IDisposable {
     public DefineAttribute(name: string): void {
         const location: number = this.context.getAttribLocation(this.program, name);
         if (location < 0) {
-            console.error("Attribute not found: " + name);
+            console.warn("Attribute not found: " + name);
             return;
         }
         this.attributes.set(name, location);
@@ -71,7 +76,7 @@ export class Shader implements IDisposable {
     public DefineUniform(name: string, type: UniformTypes): void {
         const location: WebGLUniformLocation | null = this.context.getUniformLocation(this.program, name);
         if (location === null) {
-            console.error("Uniform not found: " + name);
+            console.warn("Uniform not found: " + name);
             return;
         }
         this.uniforms.set(name, { location: location, type: type, value: undefined });
@@ -160,6 +165,24 @@ export class Shader implements IDisposable {
         this.context.uniformMatrix4fv(uniformData.location, false, value);
     }
 
+    public SetSampler2DUniform(uniformName: string, textureUnit: number, texture: Texture2D) {
+        if (textureUnit < 0 || textureUnit >= TEXTURE_UNIT_AMOUNT) {
+            console.error("Invalid texture unit value: " + textureUnit);
+            return;
+        }
+
+        let uniformData: IUniformData | undefined = this.Uniforms.get(uniformName);
+        if (uniformData === undefined) return;
+
+        if (uniformData.value === undefined || uniformData.value !== textureUnit) {
+            uniformData.value = textureUnit;
+            this.context.uniform1i(uniformData.location, textureUnit);
+        }
+
+        this.pipelineState.CurrentTextureUnit = textureUnit;
+        this.pipelineState.BindTexture(texture);
+    }
+
     // Shader creation --------------------------------------------------------------------------------------------------------
 
     private CreateShader(type: number, source: string): WebGLShader | null {
@@ -215,13 +238,13 @@ export class Shader implements IDisposable {
 
     private static readonly shaders: Map<string, Shader> = new Map<string, Shader>();
 
-    public static GetShader(context: WebGLRenderingContext, name: string, vsSource: string, psSource: string): Shader {
+    public static Get(scene: Scene, name: string, vsSource: string, psSource: string): Shader {
         let key: string = name;
 
         let shader: Shader | undefined = this.shaders.get(key);
 
         if (shader === undefined) {
-            shader = new Shader(context, vsSource, psSource);
+            shader = new Shader(scene, vsSource, psSource);
             this.shaders.set(key, shader);
         }
 

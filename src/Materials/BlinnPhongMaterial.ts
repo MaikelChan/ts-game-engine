@@ -3,6 +3,8 @@ import { POSITION_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTI
 import { vec3, vec2 } from "gl-matrix";
 import { IGlobalUniforms } from "../Interfaces";
 import { MAX_LIGHTS, LIGHT_DATA_SIZE } from "../Constants";
+import { Texture2D } from "../Systems/Graphics/Texture2D";
+import { Scene } from "..";
 
 export class BlinnPhongMaterial extends Material {
 
@@ -10,14 +12,18 @@ export class BlinnPhongMaterial extends Material {
     get Color(): vec3 { return this.color; }
     set Color(color: vec3) { this.color = color; }
 
+    private mainTexture: Texture2D;
+    get MainTexture(): Texture2D { return this.mainTexture; }
+    set MainTexture(texture2D: Texture2D) { this.mainTexture = texture2D; }
+
     private specularPower: vec2;
     get Specular(): number { return this.specularPower[0]; }
     set Specular(specular: number) { this.specularPower[0] = specular; }
     get SpecularPower(): number { return this.specularPower[1]; }
     set SpecularPower(power: number) { this.specularPower[1] = power; }
 
-    constructor(context: WebGLRenderingContext) {
-        super(context, vsSource, fsSource);
+    constructor(scene: Scene) {
+        super(scene, vsSource, fsSource);
 
         this.Shader.DefineAttribute(POSITION_ATTRIBUTE);
         this.Shader.DefineAttribute(COLOR_ATTRIBUTE);
@@ -34,9 +40,11 @@ export class BlinnPhongMaterial extends Material {
         this.Shader.DefineUniform(POINT_LIGHTS_DATA_UNIFORM, UniformTypes.Float4Vector);
 
         this.Shader.DefineUniform("uColor", UniformTypes.Float3);
+        this.Shader.DefineUniform("mainTexture", UniformTypes.Sampler2D);
         this.Shader.DefineUniform("uSpecularPower", UniformTypes.Float2);
 
         this.color = vec3.fromValues(1, 1, 1);
+        this.mainTexture = Texture2D.GetBlank(scene);
         this.specularPower = vec2.fromValues(1, 32);
     }
 
@@ -51,6 +59,7 @@ export class BlinnPhongMaterial extends Material {
         this.Shader.SetFloat4VectorUniform(POINT_LIGHTS_DATA_UNIFORM, globalUniforms.lightsData);
 
         this.Shader.SetFloat3Uniform("uColor", this.color);
+        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
     }
 }
@@ -88,10 +97,12 @@ varying vec3 vWorldNormal;
 varying vec4 vColor;
 varying vec2 vUV0;
 
-uniform vec3 uColor;
 uniform vec3 uViewPosition;
 uniform vec3 uAmbientLight;
 uniform vec4 uPointLightsData[${MAX_LIGHTS} * ${LIGHT_DATA_SIZE}];
+
+uniform vec3 uColor;
+uniform sampler2D mainTexture;
 uniform vec2 uSpecularPower;
 
 #define POINT_LIGHT_CONSTANT 1.0
@@ -119,7 +130,7 @@ void main() {
     vec3 normalizedWorldNormal = normalize(vWorldNormal);
 	vec3 viewDir = normalize(uViewPosition - vWorldPosition.xyz);
 
-	vec3 diffuseColor = (/*texture(mainTexture, texCoord) * */ vColor.rgb * uColor).rgb;
+	vec3 diffuseColor = (texture2D(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
 	float specularTex = 1.0; // texture(glossTexture, texCoord).x;
 	float specularStrength = uSpecularPower.x; // mix(0.25, uSpecularPower.x, specularTex);
 	float specularPower = uSpecularPower.y; // mix(1.0, uSpecularPower.y, specularTex);
