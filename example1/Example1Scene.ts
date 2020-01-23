@@ -1,4 +1,4 @@
-import { Scene, Materials, Meshes, Entities, Game } from "ts-game-engine";
+import { Scene, Materials, Meshes, Entities, Game, Texture2D } from "ts-game-engine";
 import { vec4, vec3, quat } from "gl-matrix";
 import { IDisposable } from "ts-game-engine/lib/Interfaces";
 
@@ -23,13 +23,14 @@ export class Example1Scene extends Scene {
 
         this.context = this.Game.GraphicsSystem.Context;
 
-        this.gridMaterial = new Materials.VertexColoredMaterial(this.context);
-        this.gridMesh = new Meshes.GridMesh(this, 10, 10, vec4.fromValues(0.45, 0.3, 0.15, 1));
+        this.gridMaterial = new Materials.VertexColoredMaterial(this);
+        this.gridMesh = new Meshes.GridMesh(this, 100, 10, vec4.fromValues(0.45, 0.3, 0.15, 1));
         this.gridRenderer = new Entities.MeshRenderer(this, "Grid");
         this.gridRenderer.SetMesh(this.gridMesh);
         this.gridRenderer.SetMaterial(this.gridMaterial);
 
-        this.monkeyMaterial = new Materials.BlinnPhongMaterial(this.context);
+        this.monkeyMaterial = new Materials.BlinnPhongMaterial(this);
+        this.monkeyMaterial.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
         this.monkeyRenderer = new Entities.MeshRenderer(this, "Monkey");
         this.monkeyRenderer.SetMaterial(this.monkeyMaterial);
         this.monkeyMesh = new Meshes.MDLMesh(this, "./Monkey.mdl", () => {
@@ -102,7 +103,7 @@ class CustomLight implements IDisposable {
     constructor(scene: Scene, mesh: Meshes.Mesh, position: vec3, color: vec3, intensity: number) {
 
         this.light = new Entities.Light(scene, "Light");
-        this.material = new Materials.UnlitColoredMaterial(scene.Game.GraphicsSystem.Context);
+        this.material = new Materials.UnlitColoredMaterial(scene);
         this.renderer = new Entities.MeshRenderer(scene, "Mesh Light");
         this.renderer.SetMesh(mesh);
         this.renderer.SetMaterial(this.material);

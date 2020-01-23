@@ -7621,6 +7621,7 @@ var esm = /*#__PURE__*/Object.freeze({
 var PipelineState_1 = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 
+exports.TEXTURE_UNIT_AMOUNT = 32;
 class PipelineState {
     constructor(graphicsSystem, context) {
         this.clearColor = esm.vec4.fromValues(0, 0, 0, 0);
@@ -7629,6 +7630,8 @@ class PipelineState {
         this.depthFunction = 513 /* Less */;
         this.faceCulling = false;
         this.faceCullingMode = 1029 /* Back */;
+        this.currentTextureUnit = 0;
+        this.textureUnits = new Array(exports.TEXTURE_UNIT_AMOUNT);
         this.graphicsSystem = graphicsSystem;
         this.context = context;
     }
@@ -7700,12 +7703,26 @@ class PipelineState {
         else
             this.graphicsSystem.Ext_VAO.bindVertexArrayOES(null);
     }
+    get CurrentTextureUnit() { return this.currentTextureUnit; }
+    set CurrentTextureUnit(textureUnit) {
+        if (this.currentTextureUnit === textureUnit)
+            return;
+        this.currentTextureUnit = textureUnit;
+        this.context.activeTexture(WebGLRenderingContext.TEXTURE0 + textureUnit);
+    }
+    BindTexture(texture) {
+        if (this.textureUnits[this.CurrentTextureUnit] === texture)
+            return;
+        this.textureUnits[this.CurrentTextureUnit] = texture;
+        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, texture.Texture);
+    }
 }
 exports.PipelineState = PipelineState;
 });
 
 unwrapExports(PipelineState_1);
-var PipelineState_2 = PipelineState_1.PipelineState;
+var PipelineState_2 = PipelineState_1.TEXTURE_UNIT_AMOUNT;
+var PipelineState_3 = PipelineState_1.PipelineState;
 
 var GraphicsSystem_1 = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -7764,6 +7781,7 @@ var GraphicsSystem_2 = GraphicsSystem_1.GraphicsSystem;
 var Shader_1 = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 
+
 exports.POSITION_ATTRIBUTE = "aPosition";
 exports.COLOR_ATTRIBUTE = "aColor";
 exports.NORMAL_ATTRIBUTE = "aNormal";
@@ -7777,10 +7795,11 @@ exports.VIEW_POSITION_UNIFORM = "uViewPosition";
 exports.AMBIENT_LIGHT_UNIFORM = "uAmbientLight";
 exports.POINT_LIGHTS_DATA_UNIFORM = "uPointLightsData";
 class Shader {
-    constructor(context, vsSource, fsSource) {
+    constructor(scene, vsSource, fsSource) {
         this.attributes = new Map();
         this.uniforms = new Map();
-        this.context = context;
+        this.context = scene.Game.GraphicsSystem.Context;
+        this.pipelineState = scene.Game.GraphicsSystem.PipelineState;
         const vertexShader = this.CreateShader(WebGLRenderingContext.VERTEX_SHADER, vsSource);
         if (vertexShader === null) {
             throw new Error();
@@ -7808,7 +7827,7 @@ class Shader {
     DefineAttribute(name) {
         const location = this.context.getAttribLocation(this.program, name);
         if (location < 0) {
-            console.error("Attribute not found: " + name);
+            console.warn("Attribute not found: " + name);
             return;
         }
         this.attributes.set(name, location);
@@ -7816,7 +7835,7 @@ class Shader {
     DefineUniform(name, type) {
         const location = this.context.getUniformLocation(this.program, name);
         if (location === null) {
-            console.error("Uniform not found: " + name);
+            console.warn("Uniform not found: " + name);
             return;
         }
         this.uniforms.set(name, { location: location, type: type, value: undefined });
@@ -7901,6 +7920,21 @@ class Shader {
         esm.mat4.copy(uniformData.value, value);
         this.context.uniformMatrix4fv(uniformData.location, false, value);
     }
+    SetSampler2DUniform(uniformName, textureUnit, texture) {
+        if (textureUnit < 0 || textureUnit >= PipelineState_1.TEXTURE_UNIT_AMOUNT) {
+            console.error("Invalid texture unit value: " + textureUnit);
+            return;
+        }
+        let uniformData = this.Uniforms.get(uniformName);
+        if (uniformData === undefined)
+            return;
+        if (uniformData.value === undefined || uniformData.value !== textureUnit) {
+            uniformData.value = textureUnit;
+            this.context.uniform1i(uniformData.location, textureUnit);
+        }
+        this.pipelineState.CurrentTextureUnit = textureUnit;
+        this.pipelineState.BindTexture(texture);
+    }
     // Shader creation --------------------------------------------------------------------------------------------------------
     CreateShader(type, source) {
         const shader = this.context.createShader(type);
@@ -7939,11 +7973,11 @@ class Shader {
         }
         return shaderProgram;
     }
-    static GetShader(context, name, vsSource, psSource) {
+    static Get(scene, name, vsSource, psSource) {
         let key = name;
         let shader = this.shaders.get(key);
         if (shader === undefined) {
-            shader = new Shader(context, vsSource, psSource);
+            shader = new Shader(scene, vsSource, psSource);
             this.shaders.set(key, shader);
         }
         return shader;
@@ -7979,9 +8013,8 @@ var Material_1 = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 
 class Material {
-    constructor(context, vsSource, fsSource) {
-        this.context = context;
-        this.shader = Shader_1.Shader.GetShader(this.context, this.constructor.name, vsSource, fsSource);
+    constructor(scene, vsSource, fsSource) {
+        this.shader = Shader_1.Shader.Get(scene, this.constructor.name, vsSource, fsSource);
     }
     get Shader() { return this.shader; }
 }
@@ -8006,15 +8039,101 @@ var Constants_2 = Constants.SHORT_SIZE;
 var Constants_3 = Constants.MAX_LIGHTS;
 var Constants_4 = Constants.LIGHT_DATA_SIZE;
 
+var Texture2D_1 = createCommonjsModule(function (module, exports) {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TEMPORARY_TEXTURE_NAME = "_TEMPORARY_TEXTURE_";
+class Texture2D {
+    // get Image(): HTMLImageElement | undefined { return this.image; }
+    // private pixelData: Uint8Array | undefined;
+    // get PixelData(): Uint8Array | undefined { return this.pixelData; }
+    constructor(scene, url, pixelData) {
+        this.FinishedLoadingTexture = (ev) => {
+            this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, this.texture);
+            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, this.image);
+            if (this.IsPowerOf2(this.image.width) && this.IsPowerOf2(this.image.height)) {
+                this.context.generateMipmap(WebGLRenderingContext.TEXTURE_2D);
+            }
+            else {
+                this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_S, WebGLRenderingContext.CLAMP_TO_EDGE);
+                this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_T, WebGLRenderingContext.CLAMP_TO_EDGE);
+                this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_MIN_FILTER, WebGLRenderingContext.LINEAR);
+            }
+        };
+        this.context = scene.Game.GraphicsSystem.Context;
+        const texture = this.context.createTexture();
+        if (texture === null) {
+            throw new Error("Unable to create Texture object.");
+        }
+        this.texture = texture;
+        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, this.texture);
+        if (pixelData !== undefined) {
+            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, pixelData);
+            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_S, WebGLRenderingContext.CLAMP_TO_EDGE);
+            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_T, WebGLRenderingContext.CLAMP_TO_EDGE);
+            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_MIN_FILTER, WebGLRenderingContext.LINEAR);
+        }
+        else if (url !== undefined) {
+            // Get temporary texture while loading
+            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
+            this.image = new Image();
+            this.image.addEventListener("load", this.FinishedLoadingTexture);
+            this.image.src = url;
+        }
+        else {
+            throw new Error("Both url and pixelData parameters can't be undefined.");
+        }
+    }
+    get Texture() { return this.texture; }
+    Dispose() {
+        this.context.deleteTexture(this.texture);
+    }
+    IsPowerOf2(value) {
+        return (value & (value - 1)) === 0;
+    }
+    static Get(scene, url) {
+        let key = url;
+        let texture = this.textures.get(key);
+        if (texture === undefined) {
+            texture = new Texture2D(scene, url, undefined);
+            this.textures.set(key, texture);
+        }
+        return texture;
+    }
+    static GetBlank(scene) {
+        let key = exports.TEMPORARY_TEXTURE_NAME;
+        let texture = this.textures.get(key);
+        if (texture === undefined) {
+            texture = new Texture2D(scene, undefined, new Uint8Array([255, 0, 255, 255]));
+            this.textures.set(key, texture);
+        }
+        return texture;
+    }
+    static DisposeAll() {
+        for (let texture of this.textures.values()) {
+            texture.Dispose();
+        }
+        this.textures.clear();
+    }
+}
+exports.Texture2D = Texture2D;
+// Texture Manager --------------------------------------------------------------------------------------------------------
+Texture2D.textures = new Map();
+});
+
+unwrapExports(Texture2D_1);
+var Texture2D_2 = Texture2D_1.TEMPORARY_TEXTURE_NAME;
+var Texture2D_3 = Texture2D_1.Texture2D;
+
 var BlinnPhongMaterial_1 = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 
 
 
 
+
 class BlinnPhongMaterial extends Material_1.Material {
-    constructor(context) {
-        super(context, vsSource, fsSource);
+    constructor(scene) {
+        super(scene, vsSource, fsSource);
         this.Shader.DefineAttribute(Shader_1.POSITION_ATTRIBUTE);
         this.Shader.DefineAttribute(Shader_1.COLOR_ATTRIBUTE);
         this.Shader.DefineAttribute(Shader_1.NORMAL_ATTRIBUTE);
@@ -8027,12 +8146,16 @@ class BlinnPhongMaterial extends Material_1.Material {
         this.Shader.DefineUniform(Shader_1.AMBIENT_LIGHT_UNIFORM, 4 /* Float3 */);
         this.Shader.DefineUniform(Shader_1.POINT_LIGHTS_DATA_UNIFORM, 7 /* Float4Vector */);
         this.Shader.DefineUniform("uColor", 4 /* Float3 */);
+        this.Shader.DefineUniform("mainTexture", 10 /* Sampler2D */);
         this.Shader.DefineUniform("uSpecularPower", 2 /* Float2 */);
         this.color = esm.vec3.fromValues(1, 1, 1);
+        this.mainTexture = Texture2D_1.Texture2D.GetBlank(scene);
         this.specularPower = esm.vec2.fromValues(1, 32);
     }
     get Color() { return this.color; }
     set Color(color) { this.color = color; }
+    get MainTexture() { return this.mainTexture; }
+    set MainTexture(texture2D) { this.mainTexture = texture2D; }
     get Specular() { return this.specularPower[0]; }
     set Specular(specular) { this.specularPower[0] = specular; }
     get SpecularPower() { return this.specularPower[1]; }
@@ -8046,6 +8169,7 @@ class BlinnPhongMaterial extends Material_1.Material {
         this.Shader.SetFloat3Uniform(Shader_1.AMBIENT_LIGHT_UNIFORM, globalUniforms.ambientLight);
         this.Shader.SetFloat4VectorUniform(Shader_1.POINT_LIGHTS_DATA_UNIFORM, globalUniforms.lightsData);
         this.Shader.SetFloat3Uniform("uColor", this.color);
+        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
     }
 }
@@ -8082,10 +8206,12 @@ varying vec3 vWorldNormal;
 varying vec4 vColor;
 varying vec2 vUV0;
 
-uniform vec3 uColor;
 uniform vec3 uViewPosition;
 uniform vec3 uAmbientLight;
 uniform vec4 uPointLightsData[${Constants.MAX_LIGHTS} * ${Constants.LIGHT_DATA_SIZE}];
+
+uniform vec3 uColor;
+uniform sampler2D mainTexture;
 uniform vec2 uSpecularPower;
 
 #define POINT_LIGHT_CONSTANT 1.0
@@ -8113,7 +8239,7 @@ void main() {
     vec3 normalizedWorldNormal = normalize(vWorldNormal);
 	vec3 viewDir = normalize(uViewPosition - vWorldPosition.xyz);
 
-	vec3 diffuseColor = (/*texture(mainTexture, texCoord) * */ vColor.rgb * uColor).rgb;
+	vec3 diffuseColor = (texture2D(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
 	float specularTex = 1.0; // texture(glossTexture, texCoord).x;
 	float specularStrength = uSpecularPower.x; // mix(0.25, uSpecularPower.x, specularTex);
 	float specularPower = uSpecularPower.y; // mix(1.0, uSpecularPower.y, specularTex);
@@ -8139,8 +8265,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 class UnlitColoredMaterial extends Material_1.Material {
-    constructor(context) {
-        super(context, vsSource, fsSource);
+    constructor(scene) {
+        super(scene, vsSource, fsSource);
         this.Shader.DefineAttribute(Shader_1.POSITION_ATTRIBUTE);
         this.Shader.DefineUniform(Shader_1.MODEL_MATRIX_UNIFORM, 9 /* Matrix4 */);
         this.Shader.DefineUniform(Shader_1.VIEW_MATRIX_UNIFORM, 9 /* Matrix4 */);
@@ -8186,8 +8312,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 
 class VertexColoredMaterial extends Material_1.Material {
-    constructor(context) {
-        super(context, vsSource, fsSource);
+    constructor(scene) {
+        super(scene, vsSource, fsSource);
         this.Shader.DefineAttribute(Shader_1.POSITION_ATTRIBUTE);
         this.Shader.DefineAttribute(Shader_1.COLOR_ATTRIBUTE);
         this.Shader.DefineUniform(Shader_1.MODEL_MATRIX_UNIFORM, 9 /* Matrix4 */);
@@ -9265,6 +9391,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Game = Game_1.Game;
 
 exports.Scene = Scene_1.Scene;
+
+exports.Texture2D = Texture2D_1.Texture2D;
 const _Components = __importStar(Components);
 exports.Components = _Components;
 const _Entities = __importStar(Entities);
@@ -9278,27 +9406,29 @@ exports.Meshes = _Meshes;
 unwrapExports(lib);
 var lib_1 = lib.Game;
 var lib_2 = lib.Scene;
-var lib_3 = lib.Components;
-var lib_4 = lib.Entities;
-var lib_5 = lib.Materials;
-var lib_6 = lib.Meshes;
+var lib_3 = lib.Texture2D;
+var lib_4 = lib.Components;
+var lib_5 = lib.Entities;
+var lib_6 = lib.Materials;
+var lib_7 = lib.Meshes;
 
 class Example1Scene extends lib_2 {
     constructor(game) {
         super(game);
         this.context = this.Game.GraphicsSystem.Context;
-        this.gridMaterial = new lib_5.VertexColoredMaterial(this.context);
-        this.gridMesh = new lib_6.GridMesh(this, 10, 10, fromValues$5(0.45, 0.3, 0.15, 1));
-        this.gridRenderer = new lib_4.MeshRenderer(this, "Grid");
+        this.gridMaterial = new lib_6.VertexColoredMaterial(this);
+        this.gridMesh = new lib_7.GridMesh(this, 100, 10, fromValues$5(0.45, 0.3, 0.15, 1));
+        this.gridRenderer = new lib_5.MeshRenderer(this, "Grid");
         this.gridRenderer.SetMesh(this.gridMesh);
         this.gridRenderer.SetMaterial(this.gridMaterial);
-        this.monkeyMaterial = new lib_5.BlinnPhongMaterial(this.context);
-        this.monkeyRenderer = new lib_4.MeshRenderer(this, "Monkey");
+        this.monkeyMaterial = new lib_6.BlinnPhongMaterial(this);
+        this.monkeyMaterial.MainTexture = lib_3.Get(this, "./Tiles-Diff.png");
+        this.monkeyRenderer = new lib_5.MeshRenderer(this, "Monkey");
         this.monkeyRenderer.SetMaterial(this.monkeyMaterial);
-        this.monkeyMesh = new lib_6.MDLMesh(this, "./Monkey.mdl", () => {
+        this.monkeyMesh = new lib_7.MDLMesh(this, "./Monkey.mdl", () => {
             this.monkeyRenderer.SetMesh(this.monkeyMesh);
         });
-        this.lightMesh = new lib_6.SphereMesh(this, 12, 6);
+        this.lightMesh = new lib_7.SphereMesh(this, 12, 6);
         this.customLights = [
             new CustomLight(this, this.lightMesh, fromValues$4(3, 3, 4), fromValues$4(1, 0.8, 0.4), 4),
             new CustomLight(this, this.lightMesh, fromValues$4(-3, 2, -2), fromValues$4(0.2, 0.6, 1), 5),
@@ -9341,9 +9471,9 @@ class Example1Scene extends lib_2 {
 }
 class CustomLight {
     constructor(scene, mesh, position, color, intensity) {
-        this.light = new lib_4.Light(scene, "Light");
-        this.material = new lib_5.UnlitColoredMaterial(scene.Game.GraphicsSystem.Context);
-        this.renderer = new lib_4.MeshRenderer(scene, "Mesh Light");
+        this.light = new lib_5.Light(scene, "Light");
+        this.material = new lib_6.UnlitColoredMaterial(scene);
+        this.renderer = new lib_5.MeshRenderer(scene, "Mesh Light");
         this.renderer.SetMesh(mesh);
         this.renderer.SetMaterial(this.material);
         this.light.Transform.Position = position;

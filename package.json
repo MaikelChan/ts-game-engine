@@ -6,8 +6,8 @@
     "bundle": "rollup --config"
   },
   "dependencies": {
-    "ts-game-engine": "0.0.1",
-    "gl-matrix": "^3.1.0"
+    "gl-matrix": "^3.1.0",
+    "ts-game-engine": "0.0.2"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^11.0.1",
