@@ -7703,18 +7703,15 @@ class PipelineState {
         else
             this.graphicsSystem.Ext_VAO.bindVertexArrayOES(null);
     }
-    get CurrentTextureUnit() { return this.currentTextureUnit; }
-    set CurrentTextureUnit(textureUnit) {
-        if (this.currentTextureUnit === textureUnit)
+    BindTexture(texture2D, textureUnit) {
+        if (this.textureUnits[textureUnit] === texture2D)
             return;
-        this.currentTextureUnit = textureUnit;
-        this.context.activeTexture(WebGLRenderingContext.TEXTURE0 + textureUnit);
-    }
-    BindTexture(texture) {
-        if (this.textureUnits[this.CurrentTextureUnit] === texture)
-            return;
-        this.textureUnits[this.CurrentTextureUnit] = texture;
-        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, texture.Texture);
+        this.textureUnits[textureUnit] = texture2D;
+        if (this.currentTextureUnit !== textureUnit) {
+            this.currentTextureUnit = textureUnit;
+            this.context.activeTexture(WebGLRenderingContext.TEXTURE0 + textureUnit);
+        }
+        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, texture2D.Texture);
     }
 }
 exports.PipelineState = PipelineState;
@@ -7932,8 +7929,7 @@ class Shader {
             uniformData.value = textureUnit;
             this.context.uniform1i(uniformData.location, textureUnit);
         }
-        this.pipelineState.CurrentTextureUnit = textureUnit;
-        this.pipelineState.BindTexture(texture);
+        this.pipelineState.BindTexture(texture, textureUnit);
     }
     // Shader creation --------------------------------------------------------------------------------------------------------
     CreateShader(type, source) {
@@ -8074,7 +8070,7 @@ class Texture2D {
         }
         else if (url !== undefined) {
             // Get temporary texture while loading
-            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
+            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
             this.image = new Image();
             this.image.addEventListener("load", this.FinishedLoadingTexture);
             this.image.src = url;
@@ -8103,7 +8099,7 @@ class Texture2D {
         let key = exports.TEMPORARY_TEXTURE_NAME;
         let texture = this.textures.get(key);
         if (texture === undefined) {
-            texture = new Texture2D(scene, undefined, new Uint8Array([255, 0, 255, 255]));
+            texture = new Texture2D(scene, undefined, new Uint8Array([255, 255, 255, 255]));
             this.textures.set(key, texture);
         }
         return texture;
@@ -8148,18 +8144,22 @@ class BlinnPhongMaterial extends Material_1.Material {
         this.Shader.DefineUniform("uColor", 4 /* Float3 */);
         this.Shader.DefineUniform("mainTexture", 10 /* Sampler2D */);
         this.Shader.DefineUniform("uSpecularPower", 2 /* Float2 */);
+        this.Shader.DefineUniform("glossTexture", 10 /* Sampler2D */);
         this.color = esm.vec3.fromValues(1, 1, 1);
-        this.mainTexture = Texture2D_1.Texture2D.GetBlank(scene);
         this.specularPower = esm.vec2.fromValues(1, 32);
+        this.mainTexture = Texture2D_1.Texture2D.GetBlank(scene);
+        this.glossTexture = Texture2D_1.Texture2D.GetBlank(scene);
     }
     get Color() { return this.color; }
     set Color(color) { this.color = color; }
-    get MainTexture() { return this.mainTexture; }
-    set MainTexture(texture2D) { this.mainTexture = texture2D; }
     get Specular() { return this.specularPower[0]; }
     set Specular(specular) { this.specularPower[0] = specular; }
     get SpecularPower() { return this.specularPower[1]; }
     set SpecularPower(power) { this.specularPower[1] = power; }
+    get MainTexture() { return this.mainTexture; }
+    set MainTexture(texture2D) { this.mainTexture = texture2D; }
+    get GlossTexture() { return this.glossTexture; }
+    set GlossTexture(texture2D) { this.glossTexture = texture2D; }
     SetUniforms(globalUniforms) {
         this.Shader.SetMatrix4Uniform(Shader_1.MODEL_MATRIX_UNIFORM, globalUniforms.modelMatrix);
         this.Shader.SetMatrix4Uniform(Shader_1.VIEW_MATRIX_UNIFORM, globalUniforms.viewMatrix);
@@ -8169,8 +8169,9 @@ class BlinnPhongMaterial extends Material_1.Material {
         this.Shader.SetFloat3Uniform(Shader_1.AMBIENT_LIGHT_UNIFORM, globalUniforms.ambientLight);
         this.Shader.SetFloat4VectorUniform(Shader_1.POINT_LIGHTS_DATA_UNIFORM, globalUniforms.lightsData);
         this.Shader.SetFloat3Uniform("uColor", this.color);
-        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
+        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
+        this.Shader.SetSampler2DUniform("glossTexture", 1, this.glossTexture);
     }
 }
 exports.BlinnPhongMaterial = BlinnPhongMaterial;
@@ -8206,13 +8207,14 @@ varying vec3 vWorldNormal;
 varying vec4 vColor;
 varying vec2 vUV0;
 
-uniform vec3 uViewPosition;
-uniform vec3 uAmbientLight;
-uniform vec4 uPointLightsData[${Constants.MAX_LIGHTS} * ${Constants.LIGHT_DATA_SIZE}];
+uniform vec3 ${Shader_1.VIEW_POSITION_UNIFORM};
+uniform vec3 ${Shader_1.AMBIENT_LIGHT_UNIFORM};
+uniform vec4 ${Shader_1.POINT_LIGHTS_DATA_UNIFORM}[${Constants.MAX_LIGHTS} * ${Constants.LIGHT_DATA_SIZE}];
 
 uniform vec3 uColor;
 uniform sampler2D mainTexture;
 uniform vec2 uSpecularPower;
+uniform sampler2D glossTexture;
 
 #define POINT_LIGHT_CONSTANT 1.0
 #define POINT_LIGHT_LINEAR 0.22
@@ -8237,22 +8239,22 @@ vec3 CalcPointLight(vec3 lightPosition, float lightIntensity, vec3 lightColor, v
 
 void main() {
     vec3 normalizedWorldNormal = normalize(vWorldNormal);
-	vec3 viewDir = normalize(uViewPosition - vWorldPosition.xyz);
+	vec3 viewDir = normalize(${Shader_1.VIEW_POSITION_UNIFORM} - vWorldPosition.xyz);
 
 	vec3 diffuseColor = (texture2D(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
-	float specularTex = 1.0; // texture(glossTexture, texCoord).x;
-	float specularStrength = uSpecularPower.x; // mix(0.25, uSpecularPower.x, specularTex);
-	float specularPower = uSpecularPower.y; // mix(1.0, uSpecularPower.y, specularTex);
+	float specularTex = texture2D(glossTexture, vUV0).x;
+	float specularStrength = mix(0.25, uSpecularPower.x, specularTex);
+	float specularPower = mix(1.0, uSpecularPower.y, specularTex);
 
 	vec3 lights = vec3(0, 0, 0);
 	for(int i = 0; i < ${Constants.MAX_LIGHTS}; i++)
 	{
-		vec4 lightPositionIntensity = uPointLightsData[i * ${Constants.LIGHT_DATA_SIZE}];
-		vec4 lightColor = uPointLightsData[i * ${Constants.LIGHT_DATA_SIZE} + 1];
+		vec4 lightPositionIntensity = ${Shader_1.POINT_LIGHTS_DATA_UNIFORM}[i * ${Constants.LIGHT_DATA_SIZE}];
+		vec4 lightColor = ${Shader_1.POINT_LIGHTS_DATA_UNIFORM}[i * ${Constants.LIGHT_DATA_SIZE} + 1];
 		lights += CalcPointLight(lightPositionIntensity.xyz, lightPositionIntensity.w, lightColor.rgb, diffuseColor, specularStrength, specularPower, normalizedWorldNormal, viewDir);
 	}
 
-	gl_FragColor = vec4(lights + uAmbientLight, 1);
+	gl_FragColor = vec4(lights + ${Shader_1.AMBIENT_LIGHT_UNIFORM}, 1);
 }`;
 });
 
@@ -8372,6 +8374,7 @@ var Game_1 = createCommonjsModule(function (module, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 
 
+
 class Game {
     constructor(canvas) {
         this.Update = (now) => {
@@ -8408,6 +8411,7 @@ class Game {
     Dispose() {
         this.shouldUpdate = false;
         Materials.Shader.DisposeAll();
+        lib.Texture2D.DisposeAll();
         this.graphicsSystem.Dispose();
     }
     Resize(width, height) {
@@ -8522,8 +8526,6 @@ class Entity {
     get Scene() { return this.scene; }
     get Name() { return this.name; }
     get Transform() { return this.transform; }
-    Dispose() {
-    }
 }
 exports.Entity = Entity;
 });
@@ -9198,7 +9200,6 @@ class MeshRenderer extends Entity_1.Entity {
     get Material() { return this.material; }
     get IsRenderable() { return this.mesh !== undefined && this.material !== undefined; }
     Dispose() {
-        super.Dispose();
         this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.vao);
     }
     Render() {
@@ -9412,56 +9413,665 @@ var lib_5 = lib.Entities;
 var lib_6 = lib.Materials;
 var lib_7 = lib.Meshes;
 
+/**
+ * Common utilities
+ * @module glMatrix
+ */
+// Configuration Constants
+var EPSILON$1 = 0.000001;
+var ARRAY_TYPE$1 = typeof Float32Array !== 'undefined' ? Float32Array : Array;
+if (!Math.hypot) Math.hypot = function () {
+  var y = 0,
+      i = arguments.length;
+
+  while (i--) {
+    y += arguments[i] * arguments[i];
+  }
+
+  return Math.sqrt(y);
+};
+
+/**
+ * 3x3 Matrix
+ * @module mat3
+ */
+
+/**
+ * Creates a new identity mat3
+ *
+ * @returns {mat3} a new 3x3 matrix
+ */
+
+function create$9() {
+  var out = new ARRAY_TYPE$1(9);
+
+  if (ARRAY_TYPE$1 != Float32Array) {
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[5] = 0;
+    out[6] = 0;
+    out[7] = 0;
+  }
+
+  out[0] = 1;
+  out[4] = 1;
+  out[8] = 1;
+  return out;
+}
+
+/**
+ * 3 Dimensional Vector
+ * @module vec3
+ */
+
+/**
+ * Creates a new, empty vec3
+ *
+ * @returns {vec3} a new 3D vector
+ */
+
+function create$a() {
+  var out = new ARRAY_TYPE$1(3);
+
+  if (ARRAY_TYPE$1 != Float32Array) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+  }
+
+  return out;
+}
+/**
+ * Calculates the length of a vec3
+ *
+ * @param {vec3} a vector to calculate length of
+ * @returns {Number} length of a
+ */
+
+function length$5(a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  return Math.hypot(x, y, z);
+}
+/**
+ * Creates a new vec3 initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @returns {vec3} a new 3D vector
+ */
+
+function fromValues$9(x, y, z) {
+  var out = new ARRAY_TYPE$1(3);
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  return out;
+}
+/**
+ * Normalize a vec3
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a vector to normalize
+ * @returns {vec3} out
+ */
+
+function normalize$5(out, a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  var len = x * x + y * y + z * z;
+
+  if (len > 0) {
+    //TODO: evaluate use of glm_invsqrt here?
+    len = 1 / Math.sqrt(len);
+  }
+
+  out[0] = a[0] * len;
+  out[1] = a[1] * len;
+  out[2] = a[2] * len;
+  return out;
+}
+/**
+ * Calculates the dot product of two vec3's
+ *
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {Number} dot product of a and b
+ */
+
+function dot$5(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+/**
+ * Computes the cross product of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+
+function cross$3(out, a, b) {
+  var ax = a[0],
+      ay = a[1],
+      az = a[2];
+  var bx = b[0],
+      by = b[1],
+      bz = b[2];
+  out[0] = ay * bz - az * by;
+  out[1] = az * bx - ax * bz;
+  out[2] = ax * by - ay * bx;
+  return out;
+}
+/**
+ * Alias for {@link vec3.length}
+ * @function
+ */
+
+var len$5 = length$5;
+/**
+ * Perform some operation over an array of vec3s.
+ *
+ * @param {Array} a the array of vectors to iterate over
+ * @param {Number} stride Number of elements between the start of each vec3. If 0 assumes tightly packed
+ * @param {Number} offset Number of elements to skip at the beginning of the array
+ * @param {Number} count Number of vec3s to iterate over. If 0 iterates over entire array
+ * @param {Function} fn Function to call for each vector in the array
+ * @param {Object} [arg] additional argument to pass to fn
+ * @returns {Array} a
+ * @function
+ */
+
+var forEach$3 = function () {
+  var vec = create$a();
+  return function (a, stride, offset, count, fn, arg) {
+    var i, l;
+
+    if (!stride) {
+      stride = 3;
+    }
+
+    if (!offset) {
+      offset = 0;
+    }
+
+    if (count) {
+      l = Math.min(count * stride + offset, a.length);
+    } else {
+      l = a.length;
+    }
+
+    for (i = offset; i < l; i += stride) {
+      vec[0] = a[i];
+      vec[1] = a[i + 1];
+      vec[2] = a[i + 2];
+      fn(vec, vec, arg);
+      a[i] = vec[0];
+      a[i + 1] = vec[1];
+      a[i + 2] = vec[2];
+    }
+
+    return a;
+  };
+}();
+
+/**
+ * 4 Dimensional Vector
+ * @module vec4
+ */
+
+/**
+ * Creates a new, empty vec4
+ *
+ * @returns {vec4} a new 4D vector
+ */
+
+function create$b() {
+  var out = new ARRAY_TYPE$1(4);
+
+  if (ARRAY_TYPE$1 != Float32Array) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+  }
+
+  return out;
+}
+/**
+ * Creates a new vec4 initialized with the given values
+ *
+ * @param {Number} x X component
+ * @param {Number} y Y component
+ * @param {Number} z Z component
+ * @param {Number} w W component
+ * @returns {vec4} a new 4D vector
+ */
+
+function fromValues$a(x, y, z, w) {
+  var out = new ARRAY_TYPE$1(4);
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  out[3] = w;
+  return out;
+}
+/**
+ * Normalize a vec4
+ *
+ * @param {vec4} out the receiving vector
+ * @param {vec4} a vector to normalize
+ * @returns {vec4} out
+ */
+
+function normalize$6(out, a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  var w = a[3];
+  var len = x * x + y * y + z * z + w * w;
+
+  if (len > 0) {
+    len = 1 / Math.sqrt(len);
+  }
+
+  out[0] = x * len;
+  out[1] = y * len;
+  out[2] = z * len;
+  out[3] = w * len;
+  return out;
+}
+/**
+ * Perform some operation over an array of vec4s.
+ *
+ * @param {Array} a the array of vectors to iterate over
+ * @param {Number} stride Number of elements between the start of each vec4. If 0 assumes tightly packed
+ * @param {Number} offset Number of elements to skip at the beginning of the array
+ * @param {Number} count Number of vec4s to iterate over. If 0 iterates over entire array
+ * @param {Function} fn Function to call for each vector in the array
+ * @param {Object} [arg] additional argument to pass to fn
+ * @returns {Array} a
+ * @function
+ */
+
+var forEach$4 = function () {
+  var vec = create$b();
+  return function (a, stride, offset, count, fn, arg) {
+    var i, l;
+
+    if (!stride) {
+      stride = 4;
+    }
+
+    if (!offset) {
+      offset = 0;
+    }
+
+    if (count) {
+      l = Math.min(count * stride + offset, a.length);
+    } else {
+      l = a.length;
+    }
+
+    for (i = offset; i < l; i += stride) {
+      vec[0] = a[i];
+      vec[1] = a[i + 1];
+      vec[2] = a[i + 2];
+      vec[3] = a[i + 3];
+      fn(vec, vec, arg);
+      a[i] = vec[0];
+      a[i + 1] = vec[1];
+      a[i + 2] = vec[2];
+      a[i + 3] = vec[3];
+    }
+
+    return a;
+  };
+}();
+
+/**
+ * Quaternion
+ * @module quat
+ */
+
+/**
+ * Creates a new identity quat
+ *
+ * @returns {quat} a new quaternion
+ */
+
+function create$c() {
+  var out = new ARRAY_TYPE$1(4);
+
+  if (ARRAY_TYPE$1 != Float32Array) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+  }
+
+  out[3] = 1;
+  return out;
+}
+/**
+ * Sets a quat from the given angle and rotation axis,
+ * then returns it.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {vec3} axis the axis around which to rotate
+ * @param {Number} rad the angle in radians
+ * @returns {quat} out
+ **/
+
+function setAxisAngle$1(out, axis, rad) {
+  rad = rad * 0.5;
+  var s = Math.sin(rad);
+  out[0] = s * axis[0];
+  out[1] = s * axis[1];
+  out[2] = s * axis[2];
+  out[3] = Math.cos(rad);
+  return out;
+}
+/**
+ * Performs a spherical linear interpolation between two quat
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
+ * @returns {quat} out
+ */
+
+function slerp$1(out, a, b, t) {
+  // benchmarks:
+  //    http://jsperf.com/quaternion-slerp-implementations
+  var ax = a[0],
+      ay = a[1],
+      az = a[2],
+      aw = a[3];
+  var bx = b[0],
+      by = b[1],
+      bz = b[2],
+      bw = b[3];
+  var omega, cosom, sinom, scale0, scale1; // calc cosine
+
+  cosom = ax * bx + ay * by + az * bz + aw * bw; // adjust signs (if necessary)
+
+  if (cosom < 0.0) {
+    cosom = -cosom;
+    bx = -bx;
+    by = -by;
+    bz = -bz;
+    bw = -bw;
+  } // calculate coefficients
+
+
+  if (1.0 - cosom > EPSILON$1) {
+    // standard case (slerp)
+    omega = Math.acos(cosom);
+    sinom = Math.sin(omega);
+    scale0 = Math.sin((1.0 - t) * omega) / sinom;
+    scale1 = Math.sin(t * omega) / sinom;
+  } else {
+    // "from" and "to" quaternions are very close
+    //  ... so we can do a linear interpolation
+    scale0 = 1.0 - t;
+    scale1 = t;
+  } // calculate final values
+
+
+  out[0] = scale0 * ax + scale1 * bx;
+  out[1] = scale0 * ay + scale1 * by;
+  out[2] = scale0 * az + scale1 * bz;
+  out[3] = scale0 * aw + scale1 * bw;
+  return out;
+}
+/**
+ * Creates a quaternion from the given 3x3 rotation matrix.
+ *
+ * NOTE: The resultant quaternion is not normalized, so you should be sure
+ * to renormalize the quaternion yourself where necessary.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {mat3} m rotation matrix
+ * @returns {quat} out
+ * @function
+ */
+
+function fromMat3$1(out, m) {
+  // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
+  // article "Quaternion Calculus and Fast Animation".
+  var fTrace = m[0] + m[4] + m[8];
+  var fRoot;
+
+  if (fTrace > 0.0) {
+    // |w| > 1/2, may as well choose w > 1/2
+    fRoot = Math.sqrt(fTrace + 1.0); // 2w
+
+    out[3] = 0.5 * fRoot;
+    fRoot = 0.5 / fRoot; // 1/(4w)
+
+    out[0] = (m[5] - m[7]) * fRoot;
+    out[1] = (m[6] - m[2]) * fRoot;
+    out[2] = (m[1] - m[3]) * fRoot;
+  } else {
+    // |w| <= 1/2
+    var i = 0;
+    if (m[4] > m[0]) i = 1;
+    if (m[8] > m[i * 3 + i]) i = 2;
+    var j = (i + 1) % 3;
+    var k = (i + 2) % 3;
+    fRoot = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1.0);
+    out[i] = 0.5 * fRoot;
+    fRoot = 0.5 / fRoot;
+    out[3] = (m[j * 3 + k] - m[k * 3 + j]) * fRoot;
+    out[j] = (m[j * 3 + i] + m[i * 3 + j]) * fRoot;
+    out[k] = (m[k * 3 + i] + m[i * 3 + k]) * fRoot;
+  }
+
+  return out;
+}
+/**
+ * Creates a quaternion from the given euler angle x, y, z.
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {x} Angle to rotate around X axis in degrees.
+ * @param {y} Angle to rotate around Y axis in degrees.
+ * @param {z} Angle to rotate around Z axis in degrees.
+ * @returns {quat} out
+ * @function
+ */
+
+function fromEuler$1(out, x, y, z) {
+  var halfToRad = 0.5 * Math.PI / 180.0;
+  x *= halfToRad;
+  y *= halfToRad;
+  z *= halfToRad;
+  var sx = Math.sin(x);
+  var cx = Math.cos(x);
+  var sy = Math.sin(y);
+  var cy = Math.cos(y);
+  var sz = Math.sin(z);
+  var cz = Math.cos(z);
+  out[0] = sx * cy * cz - cx * sy * sz;
+  out[1] = cx * sy * cz + sx * cy * sz;
+  out[2] = cx * cy * sz - sx * sy * cz;
+  out[3] = cx * cy * cz + sx * sy * sz;
+  return out;
+}
+/**
+ * Normalize a quat
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a quaternion to normalize
+ * @returns {quat} out
+ * @function
+ */
+
+var normalize$7 = normalize$6;
+/**
+ * Sets a quaternion to represent the shortest rotation from one
+ * vector to another.
+ *
+ * Both vectors are assumed to be unit length.
+ *
+ * @param {quat} out the receiving quaternion.
+ * @param {vec3} a the initial vector
+ * @param {vec3} b the destination vector
+ * @returns {quat} out
+ */
+
+var rotationTo$1 = function () {
+  var tmpvec3 = create$a();
+  var xUnitVec3 = fromValues$9(1, 0, 0);
+  var yUnitVec3 = fromValues$9(0, 1, 0);
+  return function (out, a, b) {
+    var dot = dot$5(a, b);
+
+    if (dot < -0.999999) {
+      cross$3(tmpvec3, xUnitVec3, a);
+      if (len$5(tmpvec3) < 0.000001) cross$3(tmpvec3, yUnitVec3, a);
+      normalize$5(tmpvec3, tmpvec3);
+      setAxisAngle$1(out, tmpvec3, Math.PI);
+      return out;
+    } else if (dot > 0.999999) {
+      out[0] = 0;
+      out[1] = 0;
+      out[2] = 0;
+      out[3] = 1;
+      return out;
+    } else {
+      cross$3(tmpvec3, a, b);
+      out[0] = tmpvec3[0];
+      out[1] = tmpvec3[1];
+      out[2] = tmpvec3[2];
+      out[3] = 1 + dot;
+      return normalize$7(out, out);
+    }
+  };
+}();
+/**
+ * Performs a spherical linear interpolation with two control points
+ *
+ * @param {quat} out the receiving quaternion
+ * @param {quat} a the first operand
+ * @param {quat} b the second operand
+ * @param {quat} c the third operand
+ * @param {quat} d the fourth operand
+ * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
+ * @returns {quat} out
+ */
+
+var sqlerp$1 = function () {
+  var temp1 = create$c();
+  var temp2 = create$c();
+  return function (out, a, b, c, d, t) {
+    slerp$1(temp1, a, d, t);
+    slerp$1(temp2, b, c, t);
+    slerp$1(out, temp1, temp2, 2 * t * (1 - t));
+    return out;
+  };
+}();
+/**
+ * Sets the specified quaternion with values corresponding to the given
+ * axes. Each axis is a vec3 and is expected to be unit length and
+ * perpendicular to all other specified axes.
+ *
+ * @param {vec3} view  the vector representing the viewing direction
+ * @param {vec3} right the vector representing the local "right" direction
+ * @param {vec3} up    the vector representing the local "up" direction
+ * @returns {quat} out
+ */
+
+var setAxes$1 = function () {
+  var matr = create$9();
+  return function (out, view, right, up) {
+    matr[0] = right[0];
+    matr[3] = right[1];
+    matr[6] = right[2];
+    matr[1] = up[0];
+    matr[4] = up[1];
+    matr[7] = up[2];
+    matr[2] = -view[0];
+    matr[5] = -view[1];
+    matr[8] = -view[2];
+    return normalize$7(out, fromMat3$1(out, matr));
+  };
+}();
+
 class Example1Scene extends lib_2 {
     constructor(game) {
         super(game);
-        this.context = this.Game.GraphicsSystem.Context;
         this.gridMaterial = new lib_6.VertexColoredMaterial(this);
-        this.gridMesh = new lib_7.GridMesh(this, 100, 10, fromValues$5(0.45, 0.3, 0.15, 1));
+        this.gridMesh = new lib_7.GridMesh(this, 10, 10, fromValues$a(0.45, 0.3, 0.15, 1));
         this.gridRenderer = new lib_5.MeshRenderer(this, "Grid");
         this.gridRenderer.SetMesh(this.gridMesh);
         this.gridRenderer.SetMaterial(this.gridMaterial);
-        this.monkeyMaterial = new lib_6.BlinnPhongMaterial(this);
-        this.monkeyMaterial.MainTexture = lib_3.Get(this, "./Tiles-Diff.png");
-        this.monkeyRenderer = new lib_5.MeshRenderer(this, "Monkey");
-        this.monkeyRenderer.SetMaterial(this.monkeyMaterial);
+        this.monkeyMaterial1 = new lib_6.BlinnPhongMaterial(this);
+        this.monkeyMaterial1.Color = fromValues$9(1, 1, 1);
+        this.monkeyMaterial1.MainTexture = lib_3.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial1.GlossTexture = lib_3.Get(this, "./Tiles-Gloss.png");
+        this.monkeyMaterial2 = new lib_6.BlinnPhongMaterial(this);
+        this.monkeyMaterial2.Color = fromValues$9(0, 1, 0);
+        this.monkeyMaterial2.MainTexture = lib_3.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial2.GlossTexture = lib_3.Get(this, "./Tiles-Gloss.png");
+        this.monkeyMaterial3 = new lib_6.BlinnPhongMaterial(this);
+        this.monkeyMaterial3.Color = fromValues$9(1, 0, 0);
+        this.monkeyMaterial3.MainTexture = lib_3.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial3.GlossTexture = lib_3.Get(this, "./Tiles-Gloss.png");
+        this.monkeyRenderer1 = new lib_5.MeshRenderer(this, "Monkey 1");
+        this.monkeyRenderer2 = new lib_5.MeshRenderer(this, "Monkey 2");
+        this.monkeyRenderer3 = new lib_5.MeshRenderer(this, "Monkey 3");
+        this.monkeyRenderer1.SetMaterial(this.monkeyMaterial1);
+        this.monkeyRenderer2.SetMaterial(this.monkeyMaterial2);
+        this.monkeyRenderer3.SetMaterial(this.monkeyMaterial3);
         this.monkeyMesh = new lib_7.MDLMesh(this, "./Monkey.mdl", () => {
-            this.monkeyRenderer.SetMesh(this.monkeyMesh);
+            this.monkeyRenderer1.SetMesh(this.monkeyMesh);
+            this.monkeyRenderer2.SetMesh(this.monkeyMesh);
+            this.monkeyRenderer3.SetMesh(this.monkeyMesh);
         });
         this.lightMesh = new lib_7.SphereMesh(this, 12, 6);
         this.customLights = [
-            new CustomLight(this, this.lightMesh, fromValues$4(3, 3, 4), fromValues$4(1, 0.8, 0.4), 4),
-            new CustomLight(this, this.lightMesh, fromValues$4(-3, 2, -2), fromValues$4(0.2, 0.6, 1), 5),
-            new CustomLight(this, this.lightMesh, fromValues$4(-1, 0, 8), fromValues$4(0.6, 1, 0.2), 4),
-            new CustomLight(this, this.lightMesh, fromValues$4(1, 4, -2), fromValues$4(1, 0.2, 0.4), 4)
+            new CustomLight(this, this.lightMesh, fromValues$9(3, 3, 4), fromValues$9(1, 0.8, 0.4), 4),
+            new CustomLight(this, this.lightMesh, fromValues$9(-3, 2, -2), fromValues$9(0.2, 0.6, 1), 5),
+            new CustomLight(this, this.lightMesh, fromValues$9(-1, 0, 8), fromValues$9(0.6, 1, 0.2), 4),
+            new CustomLight(this, this.lightMesh, fromValues$9(1, 4, -2), fromValues$9(1, 0.2, 0.4), 4)
         ];
     }
     Start() {
         super.Start();
-        this.ClearColor = fromValues$5(0.15, 0.1, 0.05, 1);
-        this.AmbientLight = fromValues$4(0.0, 0.0, 0.0);
+        this.ClearColor = fromValues$a(0.15, 0.1, 0.05, 1);
+        this.AmbientLight = fromValues$9(0.075, 0.05, 0.025);
         this.AddEntity(this.gridRenderer);
-        this.monkeyRenderer.Transform.Scale = fromValues$4(2, 2, 2);
-        this.AddEntity(this.monkeyRenderer);
+        this.monkeyRenderer1.Transform.Position = fromValues$9(0, 0, 0);
+        this.monkeyRenderer2.Transform.Position = fromValues$9(-5, 0, 0);
+        this.monkeyRenderer3.Transform.Position = fromValues$9(5, 0, 0);
+        this.monkeyRenderer1.Transform.Scale = fromValues$9(2, 2, 2);
+        this.monkeyRenderer2.Transform.Scale = fromValues$9(1, 1, 1);
+        this.monkeyRenderer3.Transform.Scale = fromValues$9(1, 1, 1);
+        this.AddEntity(this.monkeyRenderer1);
+        this.AddEntity(this.monkeyRenderer2);
+        this.AddEntity(this.monkeyRenderer3);
     }
     Update(deltaTime) {
         super.Update(deltaTime);
         let currentTime = this.Game.ElapsedSeconds;
-        this.Camera.Transform.Position = fromValues$4(0, Math.sin(currentTime * 2) + 4.5, 15.0);
-        let tempQuat = create$6();
-        fromEuler(tempQuat, -20, 0, 0);
+        let speed = currentTime * 0.5 * Math.PI;
+        this.Camera.Transform.Position = fromValues$9(Math.sin(speed) * 15, 4.5, Math.cos(speed) * 15);
+        let tempQuat = create$c();
+        fromEuler$1(tempQuat, -20, currentTime * 0.5 * 180, 0);
         this.Camera.Transform.Rotation = tempQuat;
-        fromEuler(tempQuat, 0, currentTime * 90, 0);
-        this.gridRenderer.Transform.Rotation = tempQuat;
-        this.monkeyRenderer.Transform.Rotation = tempQuat;
-    }
-    Render() {
-        super.Render();
+        fromEuler$1(tempQuat, 0, currentTime * 90, 0);
     }
     Dispose() {
         this.gridRenderer.Dispose();
         this.gridMesh.Dispose();
-        this.monkeyRenderer.Dispose();
+        this.monkeyRenderer1.Dispose();
+        this.monkeyRenderer2.Dispose();
+        this.monkeyRenderer3.Dispose();
         this.monkeyMesh.Dispose();
         this.lightMesh.Dispose();
         for (let l = 0; l < this.customLights.length; l++)
@@ -9482,7 +10092,7 @@ class CustomLight {
         scene.AddEntity(this.light);
         this.material.Color = this.light.Color;
         this.renderer.Transform.Position = this.light.Transform.Position;
-        this.renderer.Transform.Scale = fromValues$4(0.2, 0.2, 0.2);
+        this.renderer.Transform.Scale = fromValues$9(0.2, 0.2, 0.2);
         scene.AddEntity(this.renderer);
     }
     Dispose() {
@@ -9506,6 +10116,7 @@ class Example1Game extends lib_1 {
 let canvas = document.getElementById("mainCanvas");
 let game = new Example1Game(canvas);
 window.addEventListener("resize", UpdateRendererResolution, false);
+window.addEventListener("unload", Unload, false);
 UpdateRendererResolution();
 function UpdateRendererResolution() {
     let width = window.innerWidth;
@@ -9513,4 +10124,8 @@ function UpdateRendererResolution() {
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     game.Resize(width, height);
+}
+function Unload() {
+    console.log("Unloading resources.");
+    game.Dispose();
 }

@@ -4,6 +4,7 @@ let canvas: HTMLCanvasElement = document.getElementById("mainCanvas") as HTMLCan
 let game: Example1Game = new Example1Game(canvas);
 
 window.addEventListener("resize", UpdateRendererResolution, false);
+window.addEventListener("unload", Unload, false);
 
 UpdateRendererResolution();
 
@@ -15,4 +16,9 @@ function UpdateRendererResolution(): void {
     canvas.style.height = `${height}px`;
 
     game.Resize(width, height);
+}
+
+function Unload(): void {
+    console.log("Unloading resources.");
+    game.Dispose();
 }

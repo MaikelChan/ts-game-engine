@@ -4,15 +4,17 @@ import { IDisposable } from "ts-game-engine/lib/Interfaces";
 
 export class Example1Scene extends Scene {
 
-    private context: WebGLRenderingContext;
-
     private gridMaterial: Materials.VertexColoredMaterial;
     private gridMesh: Meshes.GridMesh;
     private gridRenderer: Entities.MeshRenderer;
 
-    private monkeyMaterial: Materials.BlinnPhongMaterial;
+    private monkeyMaterial1: Materials.BlinnPhongMaterial;
+    private monkeyMaterial2: Materials.BlinnPhongMaterial;
+    private monkeyMaterial3: Materials.BlinnPhongMaterial;
+    private monkeyRenderer1: Entities.MeshRenderer;
+    private monkeyRenderer2: Entities.MeshRenderer;
+    private monkeyRenderer3: Entities.MeshRenderer;
     private monkeyMesh: Meshes.MDLMesh;
-    private monkeyRenderer: Entities.MeshRenderer;
 
     private lightMesh: Meshes.SphereMesh;
 
@@ -21,20 +23,37 @@ export class Example1Scene extends Scene {
     constructor(game: Game) {
         super(game);
 
-        this.context = this.Game.GraphicsSystem.Context;
-
         this.gridMaterial = new Materials.VertexColoredMaterial(this);
-        this.gridMesh = new Meshes.GridMesh(this, 100, 10, vec4.fromValues(0.45, 0.3, 0.15, 1));
+        this.gridMesh = new Meshes.GridMesh(this, 10, 10, vec4.fromValues(0.45, 0.3, 0.15, 1));
         this.gridRenderer = new Entities.MeshRenderer(this, "Grid");
         this.gridRenderer.SetMesh(this.gridMesh);
         this.gridRenderer.SetMaterial(this.gridMaterial);
 
-        this.monkeyMaterial = new Materials.BlinnPhongMaterial(this);
-        this.monkeyMaterial.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
-        this.monkeyRenderer = new Entities.MeshRenderer(this, "Monkey");
-        this.monkeyRenderer.SetMaterial(this.monkeyMaterial);
+        this.monkeyMaterial1 = new Materials.BlinnPhongMaterial(this);
+        this.monkeyMaterial1.Color = vec3.fromValues(1, 1, 1);
+        this.monkeyMaterial1.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial1.GlossTexture = Texture2D.Get(this, "./Tiles-Gloss.png");
+
+        this.monkeyMaterial2 = new Materials.BlinnPhongMaterial(this);
+        this.monkeyMaterial2.Color = vec3.fromValues(0, 1, 0);
+        this.monkeyMaterial2.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial2.GlossTexture = Texture2D.Get(this, "./Tiles-Gloss.png");
+
+        this.monkeyMaterial3 = new Materials.BlinnPhongMaterial(this);
+        this.monkeyMaterial3.Color = vec3.fromValues(1, 0, 0);
+        this.monkeyMaterial3.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial3.GlossTexture = Texture2D.Get(this, "./Tiles-Gloss.png");
+
+        this.monkeyRenderer1 = new Entities.MeshRenderer(this, "Monkey 1");
+        this.monkeyRenderer2 = new Entities.MeshRenderer(this, "Monkey 2");
+        this.monkeyRenderer3 = new Entities.MeshRenderer(this, "Monkey 3");
+        this.monkeyRenderer1.SetMaterial(this.monkeyMaterial1);
+        this.monkeyRenderer2.SetMaterial(this.monkeyMaterial2);
+        this.monkeyRenderer3.SetMaterial(this.monkeyMaterial3);
         this.monkeyMesh = new Meshes.MDLMesh(this, "./Monkey.mdl", () => {
-            this.monkeyRenderer.SetMesh(this.monkeyMesh);
+            this.monkeyRenderer1.SetMesh(this.monkeyMesh);
+            this.monkeyRenderer2.SetMesh(this.monkeyMesh);
+            this.monkeyRenderer3.SetMesh(this.monkeyMesh);
         });
 
         this.lightMesh = new Meshes.SphereMesh(this, 12, 6);
@@ -51,39 +70,45 @@ export class Example1Scene extends Scene {
         super.Start();
 
         this.ClearColor = vec4.fromValues(0.15, 0.1, 0.05, 1);
-        this.AmbientLight = vec3.fromValues(0.0, 0.0, 0.0);
+        this.AmbientLight = vec3.fromValues(0.075, 0.05, 0.025);
 
         this.AddEntity(this.gridRenderer);
 
-        this.monkeyRenderer.Transform.Scale = vec3.fromValues(2, 2, 2);
-        this.AddEntity(this.monkeyRenderer);
+        this.monkeyRenderer1.Transform.Position = vec3.fromValues(0, 0, 0);
+        this.monkeyRenderer2.Transform.Position = vec3.fromValues(-5, 0, 0);
+        this.monkeyRenderer3.Transform.Position = vec3.fromValues(5, 0, 0);
+
+        this.monkeyRenderer1.Transform.Scale = vec3.fromValues(2, 2, 2);
+        this.monkeyRenderer2.Transform.Scale = vec3.fromValues(1, 1, 1);
+        this.monkeyRenderer3.Transform.Scale = vec3.fromValues(1, 1, 1);
+
+        this.AddEntity(this.monkeyRenderer1);
+        this.AddEntity(this.monkeyRenderer2);
+        this.AddEntity(this.monkeyRenderer3);
     }
 
     public Update(deltaTime: number): void {
         super.Update(deltaTime);
 
         let currentTime = this.Game.ElapsedSeconds;
+        let speed = currentTime * 0.5 * Math.PI;
 
-        this.Camera.Transform.Position = vec3.fromValues(0, Math.sin(currentTime * 2) + 4.5, 15.0);
+        this.Camera.Transform.Position = vec3.fromValues(Math.sin(speed) * 15, 4.5, Math.cos(speed) * 15);
 
         let tempQuat: quat = quat.create();
-        quat.fromEuler(tempQuat, -20, 0, 0);
+        quat.fromEuler(tempQuat, -20, currentTime * 0.5 * 180, 0);
         this.Camera.Transform.Rotation = tempQuat;
 
         quat.fromEuler(tempQuat, 0, currentTime * 90, 0);
-        this.gridRenderer.Transform.Rotation = tempQuat;
-        this.monkeyRenderer.Transform.Rotation = tempQuat;
-    }
-
-    public Render(): void {
-        super.Render();
     }
 
     public Dispose(): void {
         this.gridRenderer.Dispose();
         this.gridMesh.Dispose();
 
-        this.monkeyRenderer.Dispose();
+        this.monkeyRenderer1.Dispose();
+        this.monkeyRenderer2.Dispose();
+        this.monkeyRenderer3.Dispose();
         this.monkeyMesh.Dispose();
 
         this.lightMesh.Dispose();
