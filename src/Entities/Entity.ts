@@ -1,8 +1,7 @@
 import { Transform } from "../Components";
 import { Scene } from "../Scene";
-import { IDisposable } from "../Interfaces";
 
-export abstract class Entity implements IDisposable {
+export abstract class Entity {
 
     private scene: Scene;
     get Scene(): Scene { return this.scene; }
@@ -18,9 +17,5 @@ export abstract class Entity implements IDisposable {
         this.name = name;
 
         this.transform = new Transform();
-    }
-
-    Dispose(): void {
-
     }
 }

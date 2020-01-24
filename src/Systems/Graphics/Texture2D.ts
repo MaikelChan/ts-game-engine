@@ -36,7 +36,7 @@ export class Texture2D implements IDisposable {
         }
         else if (url !== undefined) {
             // Get temporary texture while loading
-            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 0, 255, 255]));
+            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
 
             this.image = new Image();
             this.image.addEventListener("load", this.FinishedLoadingTexture);
@@ -92,7 +92,7 @@ export class Texture2D implements IDisposable {
         let texture: Texture2D | undefined = this.textures.get(key);
 
         if (texture === undefined) {
-            texture = new Texture2D(scene, undefined, new Uint8Array([255, 0, 255, 255]));
+            texture = new Texture2D(scene, undefined, new Uint8Array([255, 255, 255, 255]));
             this.textures.set(key, texture);
         }
 

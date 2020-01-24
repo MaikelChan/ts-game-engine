@@ -179,8 +179,7 @@ export class Shader implements IDisposable {
             this.context.uniform1i(uniformData.location, textureUnit);
         }
 
-        this.pipelineState.CurrentTextureUnit = textureUnit;
-        this.pipelineState.BindTexture(texture);
+        this.pipelineState.BindTexture(texture, textureUnit);
     }
 
     // Shader creation --------------------------------------------------------------------------------------------------------

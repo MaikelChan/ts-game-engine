@@ -86,17 +86,16 @@ export class PipelineState {
     }
 
     private currentTextureUnit: number = 0;
-    get CurrentTextureUnit(): number { return this.currentTextureUnit; }
-    set CurrentTextureUnit(textureUnit: number) {
-        if (this.currentTextureUnit === textureUnit) return;
-        this.currentTextureUnit = textureUnit;
-        this.context.activeTexture(WebGLRenderingContext.TEXTURE0 + textureUnit);
-    }
-
     private textureUnits: Texture2D[] = new Array(TEXTURE_UNIT_AMOUNT);
-    public BindTexture(texture: Texture2D): void {
-        if (this.textureUnits[this.CurrentTextureUnit] === texture) return;
-        this.textureUnits[this.CurrentTextureUnit] = texture;
-        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, texture.Texture);
+    public BindTexture(texture2D: Texture2D, textureUnit: number): void {
+        if (this.textureUnits[textureUnit] === texture2D) return;
+        this.textureUnits[textureUnit] = texture2D;
+
+        if (this.currentTextureUnit !== textureUnit) {
+            this.currentTextureUnit = textureUnit;
+            this.context.activeTexture(WebGLRenderingContext.TEXTURE0 + textureUnit);
+        }
+
+        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, texture2D.Texture);
     }
 }

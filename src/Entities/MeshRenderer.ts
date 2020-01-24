@@ -2,13 +2,13 @@ import { Entity } from "./Entity";
 import { Scene } from "../Scene";
 import { Mesh, VertexFormat, ATTRIBUTE_INFO } from "../Meshes";
 import { Material } from "../Materials";
-import { IRenderable, IGlobalUniforms } from "../Interfaces";
+import { IRenderable, IGlobalUniforms, IDisposable } from "../Interfaces";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
 import { GraphicsSystem } from "../Systems/Graphics/GraphicsSystem";
 import { FLOAT_SIZE } from "../Constants";
 import { Utils } from "../Utils";
 
-export class MeshRenderer extends Entity implements IRenderable {
+export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
     private readonly graphicsSystem: GraphicsSystem;
     private readonly context: WebGLRenderingContext;
@@ -42,8 +42,6 @@ export class MeshRenderer extends Entity implements IRenderable {
     }
 
     public Dispose(): void {
-        super.Dispose();
-
         this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.vao);
     }
 

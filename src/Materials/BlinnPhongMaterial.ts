@@ -12,15 +12,19 @@ export class BlinnPhongMaterial extends Material {
     get Color(): vec3 { return this.color; }
     set Color(color: vec3) { this.color = color; }
 
-    private mainTexture: Texture2D;
-    get MainTexture(): Texture2D { return this.mainTexture; }
-    set MainTexture(texture2D: Texture2D) { this.mainTexture = texture2D; }
-
     private specularPower: vec2;
     get Specular(): number { return this.specularPower[0]; }
     set Specular(specular: number) { this.specularPower[0] = specular; }
     get SpecularPower(): number { return this.specularPower[1]; }
     set SpecularPower(power: number) { this.specularPower[1] = power; }
+
+    private mainTexture: Texture2D;
+    get MainTexture(): Texture2D { return this.mainTexture; }
+    set MainTexture(texture2D: Texture2D) { this.mainTexture = texture2D; }
+
+    private glossTexture: Texture2D;
+    get GlossTexture(): Texture2D { return this.glossTexture; }
+    set GlossTexture(texture2D: Texture2D) { this.glossTexture = texture2D; }
 
     constructor(scene: Scene) {
         super(scene, vsSource, fsSource);
@@ -42,10 +46,12 @@ export class BlinnPhongMaterial extends Material {
         this.Shader.DefineUniform("uColor", UniformTypes.Float3);
         this.Shader.DefineUniform("mainTexture", UniformTypes.Sampler2D);
         this.Shader.DefineUniform("uSpecularPower", UniformTypes.Float2);
+        this.Shader.DefineUniform("glossTexture", UniformTypes.Sampler2D);
 
         this.color = vec3.fromValues(1, 1, 1);
-        this.mainTexture = Texture2D.GetBlank(scene);
         this.specularPower = vec2.fromValues(1, 32);
+        this.mainTexture = Texture2D.GetBlank(scene);
+        this.glossTexture = Texture2D.GetBlank(scene);
     }
 
     public SetUniforms(globalUniforms: IGlobalUniforms): void {
@@ -59,8 +65,9 @@ export class BlinnPhongMaterial extends Material {
         this.Shader.SetFloat4VectorUniform(POINT_LIGHTS_DATA_UNIFORM, globalUniforms.lightsData);
 
         this.Shader.SetFloat3Uniform("uColor", this.color);
-        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
+        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
+        this.Shader.SetSampler2DUniform("glossTexture", 1, this.glossTexture);
     }
 }
 
@@ -97,13 +104,14 @@ varying vec3 vWorldNormal;
 varying vec4 vColor;
 varying vec2 vUV0;
 
-uniform vec3 uViewPosition;
-uniform vec3 uAmbientLight;
-uniform vec4 uPointLightsData[${MAX_LIGHTS} * ${LIGHT_DATA_SIZE}];
+uniform vec3 ${VIEW_POSITION_UNIFORM};
+uniform vec3 ${AMBIENT_LIGHT_UNIFORM};
+uniform vec4 ${POINT_LIGHTS_DATA_UNIFORM}[${MAX_LIGHTS} * ${LIGHT_DATA_SIZE}];
 
 uniform vec3 uColor;
 uniform sampler2D mainTexture;
 uniform vec2 uSpecularPower;
+uniform sampler2D glossTexture;
 
 #define POINT_LIGHT_CONSTANT 1.0
 #define POINT_LIGHT_LINEAR 0.22
@@ -128,20 +136,20 @@ vec3 CalcPointLight(vec3 lightPosition, float lightIntensity, vec3 lightColor, v
 
 void main() {
     vec3 normalizedWorldNormal = normalize(vWorldNormal);
-	vec3 viewDir = normalize(uViewPosition - vWorldPosition.xyz);
+	vec3 viewDir = normalize(${VIEW_POSITION_UNIFORM} - vWorldPosition.xyz);
 
 	vec3 diffuseColor = (texture2D(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
-	float specularTex = 1.0; // texture(glossTexture, texCoord).x;
-	float specularStrength = uSpecularPower.x; // mix(0.25, uSpecularPower.x, specularTex);
-	float specularPower = uSpecularPower.y; // mix(1.0, uSpecularPower.y, specularTex);
+	float specularTex = texture2D(glossTexture, vUV0).x;
+	float specularStrength = mix(0.25, uSpecularPower.x, specularTex);
+	float specularPower = mix(1.0, uSpecularPower.y, specularTex);
 
 	vec3 lights = vec3(0, 0, 0);
 	for(int i = 0; i < ${MAX_LIGHTS}; i++)
 	{
-		vec4 lightPositionIntensity = uPointLightsData[i * ${LIGHT_DATA_SIZE}];
-		vec4 lightColor = uPointLightsData[i * ${LIGHT_DATA_SIZE} + 1];
+		vec4 lightPositionIntensity = ${POINT_LIGHTS_DATA_UNIFORM}[i * ${LIGHT_DATA_SIZE}];
+		vec4 lightColor = ${POINT_LIGHTS_DATA_UNIFORM}[i * ${LIGHT_DATA_SIZE} + 1];
 		lights += CalcPointLight(lightPositionIntensity.xyz, lightPositionIntensity.w, lightColor.rgb, diffuseColor, specularStrength, specularPower, normalizedWorldNormal, viewDir);
 	}
 
-	gl_FragColor = vec4(lights + uAmbientLight, 1);
+	gl_FragColor = vec4(lights + ${AMBIENT_LIGHT_UNIFORM}, 1);
 }`;

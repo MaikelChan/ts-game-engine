@@ -2,6 +2,7 @@ import { Scene } from "./Scene";
 import { IDisposable } from "./Interfaces";
 import { GraphicsSystem } from "./Systems/Graphics/GraphicsSystem";
 import { Shader } from "./Materials";
+import { Texture2D } from ".";
 
 export abstract class Game implements IDisposable {
     private graphicsSystem: GraphicsSystem;
@@ -56,6 +57,7 @@ export abstract class Game implements IDisposable {
         this.shouldUpdate = false;
 
         Shader.DisposeAll();
+        Texture2D.DisposeAll();
         this.graphicsSystem.Dispose();
     }
 
