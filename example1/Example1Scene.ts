@@ -96,7 +96,7 @@ export class Example1Scene extends Scene {
         this.Camera.Transform.Position = vec3.fromValues(Math.sin(speed) * 15, 4.5, Math.cos(speed) * 15);
 
         let cameraRotation: quat = quat.create();
-        this.Camera.Transform.Rotation = quat.fromEuler(cameraRotation, -20, currentTime * 0.25 * 180, 0);;
+        this.Camera.Transform.Rotation = quat.fromEuler(cameraRotation, -20, currentTime * 0.25 * 180, 0);
 
         let monkey2Rotation: quat = quat.create();
         this.monkeyRenderer2.Transform.Rotation = quat.fromEuler(monkey2Rotation, 0, currentTime * 180, 0);
