@@ -2,7 +2,7 @@ import { Scene } from "./Scene";
 import { IDisposable } from "./Interfaces";
 import { GraphicsSystem } from "./Systems/Graphics/GraphicsSystem";
 import { Shader } from "./Materials";
-import { Texture2D } from ".";
+import { Texture2D } from "./Systems/Graphics/Texture2D";
 import { Settings } from "./Settings";
 
 export abstract class Game implements IDisposable {

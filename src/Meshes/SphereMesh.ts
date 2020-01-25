@@ -11,7 +11,7 @@ export class SphereMesh extends Mesh {
         super(scene);
 
         this.widthSegments = Math.max(3, Math.floor(widthSegments));
-        this.heightSegments = Math.max(2, Math.floor(heightSegments));
+        this.heightSegments = Math.max(3, Math.floor(heightSegments));
         const radius: number = 0.5;
         const phiStart: number = 0;
         const phiLength: number = Math.PI * 2;
@@ -26,19 +26,19 @@ export class SphereMesh extends Mesh {
 
         let i: number = 0;
 
-        for (let iy: number = 0; iy <= heightSegments; iy++) {
-            const v = iy / heightSegments;
+        for (let iy: number = 0; iy <= this.heightSegments; iy++) {
+            const v = iy / this.heightSegments;
 
             let uOffset = 0;
 
-            if (iy == 0 && thetaStart == 0) {
-                uOffset = 0.5 / widthSegments;
-            } else if (iy == heightSegments && thetaEnd == Math.PI) {
-                uOffset = - 0.5 / widthSegments;
+            if ((iy === 0 && thetaStart === 0) || (iy === this.heightSegments && thetaEnd === Math.PI)) {
+                uOffset = 0.5 / this.widthSegments;
             }
 
-            for (let ix: number = 0; ix <= widthSegments; ix++) {
-                const u = ix / widthSegments;
+            for (let ix: number = 0; ix <= this.widthSegments; ix++) {
+                if (ix === this.widthSegments && (iy === 0 || iy === this.heightSegments)) continue;
+
+                const u = ix / this.widthSegments;
 
                 // Position
                 tempVec3[0] = - radius * Math.cos(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
@@ -72,24 +72,36 @@ export class SphereMesh extends Mesh {
 
         i = 0;
 
-        for (let iy: number = 0; iy < heightSegments; iy++) {
-            for (let ix: number = 0; ix < widthSegments; ix++) {
+        for (let iy: number = 0; iy < this.heightSegments; iy++) {
+            for (let ix: number = 0; ix < this.widthSegments; ix++) {
 
-                const a = (iy + 0) * (widthSegments + 1) + (ix + 1);
-                const b = (iy + 0) * (widthSegments + 1) + (ix + 0);
-                const c = (iy + 1) * (widthSegments + 1) + (ix + 0);
-                const d = (iy + 1) * (widthSegments + 1) + (ix + 1);
-
-                if (iy !== 0 || thetaStart > 0) {
-                    indexData[i++] = a;
-                    indexData[i++] = b;
-                    indexData[i++] = d;
+                if (iy === 0) {
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 0) + iy;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 0) + iy;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 1) + iy;
                 }
+                else if (iy === 1) {
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 1) + iy - 1;
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 0) + iy - 1;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 0) + iy;
 
-                if (iy !== heightSegments - 1 || thetaEnd < Math.PI) {
-                    indexData[i++] = b;
-                    indexData[i++] = c;
-                    indexData[i++] = d;
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 1);
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 0) + 1;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 1) + 1;
+                }
+                else if (iy > 1 && iy < this.heightSegments - 1) {
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 1) + iy - 1;
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 0) + iy - 1;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 0) + iy;
+
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 1) + iy - 1;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 0) + iy;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 1) + iy;
+                }
+                else if (iy === this.heightSegments - 1) {
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 1) + iy - 1;
+                    indexData[i++] = (iy + 0) * (this.widthSegments) + (ix + 0) + iy - 1;
+                    indexData[i++] = (iy + 1) * (this.widthSegments) + (ix + 0) + iy;
                 }
             }
         }
