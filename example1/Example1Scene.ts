@@ -70,7 +70,7 @@ export class Example1Scene extends Scene {
         super.Start();
 
         this.ClearColor = vec4.fromValues(0.15, 0.1, 0.05, 1);
-        this.AmbientLight = vec3.fromValues(0.075, 0.05, 0.025);
+        this.AmbientLight = vec3.fromValues(0.15, 0.1, 0.05);
 
         this.AddEntity(this.gridRenderer);
 
@@ -91,15 +91,18 @@ export class Example1Scene extends Scene {
         super.Update(deltaTime);
 
         let currentTime = this.Game.ElapsedSeconds;
-        let speed = currentTime * 0.5 * Math.PI;
+        let speed = currentTime * 0.25 * Math.PI;
 
         this.Camera.Transform.Position = vec3.fromValues(Math.sin(speed) * 15, 4.5, Math.cos(speed) * 15);
 
-        let tempQuat: quat = quat.create();
-        quat.fromEuler(tempQuat, -20, currentTime * 0.5 * 180, 0);
-        this.Camera.Transform.Rotation = tempQuat;
+        let cameraRotation: quat = quat.create();
+        this.Camera.Transform.Rotation = quat.fromEuler(cameraRotation, -20, currentTime * 0.25 * 180, 0);;
 
-        quat.fromEuler(tempQuat, 0, currentTime * 90, 0);
+        let monkey2Rotation: quat = quat.create();
+        this.monkeyRenderer2.Transform.Rotation = quat.fromEuler(monkey2Rotation, 0, currentTime * 180, 0);
+
+        let monkey3Rotation: quat = quat.create();
+        this.monkeyRenderer3.Transform.Rotation = quat.fromEuler(monkey3Rotation, 0, -currentTime * 180, 0);
     }
 
     public Dispose(): void {
@@ -144,7 +147,6 @@ class CustomLight implements IDisposable {
     }
 
     public Dispose(): void {
-        this.light.Dispose();
         this.renderer.Dispose();
     }
 }
