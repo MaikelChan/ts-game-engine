@@ -63,7 +63,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         else
             this.context.drawArrays(this.mesh.MeshTopology, 0, this.mesh.VertexCount);
 
-        this.RenderBoundsDebug();
+        if (this.Scene.Game.Settings.ShowBounds) this.RenderBoundsDebug();
     }
 
     public SetMesh(mesh: Mesh): void {

@@ -3,10 +3,14 @@ import { IDisposable } from "./Interfaces";
 import { GraphicsSystem } from "./Systems/Graphics/GraphicsSystem";
 import { Shader } from "./Materials";
 import { Texture2D } from ".";
+import { Settings } from "./Settings";
 
 export abstract class Game implements IDisposable {
     private graphicsSystem: GraphicsSystem;
     get GraphicsSystem(): GraphicsSystem { return this.graphicsSystem; }
+
+    private settings: Settings;
+    get Settings(): Settings { return this.settings; }
 
     private scene: Scene | undefined;
     get Scene(): Scene | undefined { return this.scene; }
@@ -20,6 +24,7 @@ export abstract class Game implements IDisposable {
 
     constructor(canvas: HTMLCanvasElement) {
         this.graphicsSystem = new GraphicsSystem(canvas);
+        this.settings = new Settings();
 
         this.shouldUpdate = false;
         this.initialTime = -1;
