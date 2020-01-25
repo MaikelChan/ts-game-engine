@@ -1,5 +1,5 @@
 import { Mesh, VERTEX_POSITION_SIZE, VERTEX_COLOR_SIZE, MeshTopology, VertexFormat } from "./Mesh";
-import { vec4 } from "gl-matrix";
+import { vec4, vec3 } from "gl-matrix";
 import { Scene } from "../Scene";
 
 export class GridMesh extends Mesh {
@@ -66,6 +66,11 @@ export class GridMesh extends Mesh {
 
         const vertexFormat: VertexFormat = VertexFormat.Position | VertexFormat.Color;
         this.SetVertexData(vertexFormat, MeshTopology.Lines, vertexCount, vertexData);
+
+        let min: vec3 = vec3.fromValues(-this.gridSize, -this.gridSize, -this.gridSize);
+        let max: vec3 = vec3.fromValues(this.gridSize, this.gridSize, this.gridSize);
+        let radius: number = vec3.len(max);
+        this.SetBounds({ min: min, max: max }, { center: vec3.fromValues(0, 0, 0), radius: radius });
 
         this.isLoaded = true;
     }

@@ -99,6 +99,7 @@ export class MDLMesh extends Mesh {
         o += vertexDataSize * vertexCount * FLOAT_SIZE;
         const indexData: Uint16Array = new Uint16Array(buffer, o, indexCount);
         this.SetIndexData(indexData);
+        this.SetBounds({ min: boundsMin, max: boundsMax }, { center: center, radius: radius });
 
         this.isLoaded = true;
 

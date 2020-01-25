@@ -4,7 +4,7 @@ import { Texture2D } from "../Systems/Graphics/Texture2D";
 import { TEXTURE_UNIT_AMOUNT, PipelineState } from "../Systems/Graphics/PipelineState";
 import { Scene } from "..";
 
-export const enum UniformTypes { Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D }
+export const enum UniformTypes { Int1, Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D }
 
 export const POSITION_ATTRIBUTE: string = "aPosition";
 export const COLOR_ATTRIBUTE: string = "aColor";
@@ -20,6 +20,7 @@ export const NORMAL_MATRIX_UNIFORM: string = "uNormalMatrix";
 export const VIEW_POSITION_UNIFORM: string = "uViewPosition";
 export const AMBIENT_LIGHT_UNIFORM: string = "uAmbientLight";
 export const POINT_LIGHTS_DATA_UNIFORM: string = "uPointLightsData";
+export const POINT_LIGHTS_COUNT_UNIFORM: string = "uPointLightsCount";
 
 export class Shader implements IDisposable {
 
@@ -84,6 +85,16 @@ export class Shader implements IDisposable {
 
     // Uniforms are stored in shader program, so cache them in Shader to avoid unnecessary GL calls.
     // The following SetUniform functions must always be called after glUseProgram.
+
+    public SetInt1Uniform(uniformName: string, value: number) {
+        let uniformData: IUniformData | undefined = this.Uniforms.get(uniformName);
+        if (uniformData === undefined) return;
+
+        if (uniformData.value !== undefined && uniformData.value === value) return;
+        uniformData.value = value;
+
+        this.context.uniform1i(uniformData.location, value);
+    }
 
     public SetFloat2Uniform(uniformName: string, value: vec2) {
         let uniformData: IUniformData | undefined = this.Uniforms.get(uniformName);

@@ -38,7 +38,18 @@ export interface IGlobalUniforms {
 
     viewPosition: vec3;
     ambientLight: vec3;
-    lightsData: Float32Array;
+    pointLightsData: Float32Array;
+    pointLightsCount: number;
+}
+
+export interface IBoundingBox {
+    min: vec3;
+    max: vec3;
+}
+
+export interface IBoundingSphere {
+    center: vec3;
+    radius: number;
 }
 
 // export interface IUniformData { location: WebGLUniformLocation; }

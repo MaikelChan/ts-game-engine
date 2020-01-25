@@ -1,5 +1,5 @@
 import { Material } from "./Material";
-import { POSITION_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, UniformTypes, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, NORMAL_MATRIX_UNIFORM, VIEW_POSITION_UNIFORM, AMBIENT_LIGHT_UNIFORM, POINT_LIGHTS_DATA_UNIFORM } from "./Shader";
+import { POSITION_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, UniformTypes, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, NORMAL_MATRIX_UNIFORM, VIEW_POSITION_UNIFORM, AMBIENT_LIGHT_UNIFORM, POINT_LIGHTS_DATA_UNIFORM, POINT_LIGHTS_COUNT_UNIFORM } from "./Shader";
 import { vec3, vec2 } from "gl-matrix";
 import { IGlobalUniforms } from "../Interfaces";
 import { MAX_LIGHTS, LIGHT_DATA_SIZE } from "../Constants";
@@ -42,6 +42,7 @@ export class BlinnPhongMaterial extends Material {
         this.Shader.DefineUniform(VIEW_POSITION_UNIFORM, UniformTypes.Float3);
         this.Shader.DefineUniform(AMBIENT_LIGHT_UNIFORM, UniformTypes.Float3);
         this.Shader.DefineUniform(POINT_LIGHTS_DATA_UNIFORM, UniformTypes.Float4Vector);
+        this.Shader.DefineUniform(POINT_LIGHTS_COUNT_UNIFORM, UniformTypes.Int1);
 
         this.Shader.DefineUniform("uColor", UniformTypes.Float3);
         this.Shader.DefineUniform("mainTexture", UniformTypes.Sampler2D);
@@ -62,7 +63,8 @@ export class BlinnPhongMaterial extends Material {
 
         this.Shader.SetFloat3Uniform(VIEW_POSITION_UNIFORM, globalUniforms.viewPosition);
         this.Shader.SetFloat3Uniform(AMBIENT_LIGHT_UNIFORM, globalUniforms.ambientLight);
-        this.Shader.SetFloat4VectorUniform(POINT_LIGHTS_DATA_UNIFORM, globalUniforms.lightsData);
+        this.Shader.SetFloat4VectorUniform(POINT_LIGHTS_DATA_UNIFORM, globalUniforms.pointLightsData);
+        this.Shader.SetInt1Uniform(POINT_LIGHTS_COUNT_UNIFORM, globalUniforms.pointLightsCount);
 
         this.Shader.SetFloat3Uniform("uColor", this.color);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
@@ -107,6 +109,7 @@ varying vec2 vUV0;
 uniform vec3 ${VIEW_POSITION_UNIFORM};
 uniform vec3 ${AMBIENT_LIGHT_UNIFORM};
 uniform vec4 ${POINT_LIGHTS_DATA_UNIFORM}[${MAX_LIGHTS} * ${LIGHT_DATA_SIZE}];
+uniform int ${POINT_LIGHTS_COUNT_UNIFORM};
 
 uniform vec3 uColor;
 uniform sampler2D mainTexture;
@@ -146,10 +149,12 @@ void main() {
 	vec3 lights = vec3(0, 0, 0);
 	for(int i = 0; i < ${MAX_LIGHTS}; i++)
 	{
-		vec4 lightPositionIntensity = ${POINT_LIGHTS_DATA_UNIFORM}[i * ${LIGHT_DATA_SIZE}];
+        if(i >= ${POINT_LIGHTS_COUNT_UNIFORM}) break;
+        
+        vec4 lightPositionIntensity = ${POINT_LIGHTS_DATA_UNIFORM}[i * ${LIGHT_DATA_SIZE}];
 		vec4 lightColor = ${POINT_LIGHTS_DATA_UNIFORM}[i * ${LIGHT_DATA_SIZE} + 1];
 		lights += CalcPointLight(lightPositionIntensity.xyz, lightPositionIntensity.w, lightColor.rgb, diffuseColor, specularStrength, specularPower, normalizedWorldNormal, viewDir);
 	}
 
-	gl_FragColor = vec4(lights + ${AMBIENT_LIGHT_UNIFORM}, 1);
+	gl_FragColor = vec4(lights + ${AMBIENT_LIGHT_UNIFORM} * diffuseColor, 1);
 }`;

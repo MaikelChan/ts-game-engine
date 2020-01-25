@@ -24,8 +24,9 @@ export abstract class Scene implements IDisposable {
     private meshRenderers: Set<MeshRenderer> = new Set<MeshRenderer>();
     private lights: Set<Light> = new Set<Light>();
 
-    private lightsData: Float32Array = new Float32Array(MAX_LIGHTS * LIGHT_DATA_SIZE * FLOAT_SIZE);
-    get LightsData(): Float32Array { return this.lightsData; }
+    private pointLightsData: Float32Array = new Float32Array(MAX_LIGHTS * LIGHT_DATA_SIZE * FLOAT_SIZE);
+    get PointLightsData(): Float32Array { return this.pointLightsData; }
+    get PointLightsCount(): number { return Math.min(this.lights.size, MAX_LIGHTS); }
 
     constructor(game: Game) {
         this.game = game;
@@ -76,22 +77,23 @@ export abstract class Scene implements IDisposable {
     }
 
     private BuildLightsData(): void {
-
+        const stride: number = LIGHT_DATA_SIZE * FLOAT_SIZE;
         let count: number = 0;
 
-        const stride: number = LIGHT_DATA_SIZE * FLOAT_SIZE;
+        // Fill point light data into the list
 
         for (let light of this.lights) {
+            let index: number = count * stride;
 
-            this.lightsData[count * stride + 0] = light.Transform.Position[0];
-            this.lightsData[count * stride + 1] = light.Transform.Position[1];
-            this.lightsData[count * stride + 2] = light.Transform.Position[2];
-            this.lightsData[count * stride + 3] = light.Intensity;
+            this.pointLightsData[index + 0] = light.Transform.Position[0];
+            this.pointLightsData[index + 1] = light.Transform.Position[1];
+            this.pointLightsData[index + 2] = light.Transform.Position[2];
+            this.pointLightsData[index + 3] = light.Intensity;
 
-            this.lightsData[count * stride + 4] = light.Color[0];
-            this.lightsData[count * stride + 5] = light.Color[1];
-            this.lightsData[count * stride + 6] = light.Color[2];
-            this.lightsData[count * stride + 7] = 0;
+            this.pointLightsData[index + 4] = light.Color[0];
+            this.pointLightsData[index + 5] = light.Color[1];
+            this.pointLightsData[index + 6] = light.Color[2];
+            this.pointLightsData[index + 7] = 0;
 
             count++;
             if (count >= MAX_LIGHTS) break; // Render MAX_LIGHTS lights at most
