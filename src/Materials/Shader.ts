@@ -2,7 +2,7 @@ import { IDisposable, IUniformData } from "../Interfaces";
 import { mat4, vec3, mat3, vec2 } from "gl-matrix";
 import { Texture2D } from "../Systems/Graphics/Texture2D";
 import { TEXTURE_UNIT_AMOUNT, PipelineState } from "../Systems/Graphics/PipelineState";
-import { Scene } from "..";
+import { Scene } from "../Scene";
 
 export const enum UniformTypes { Int1, Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D }
 

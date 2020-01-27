@@ -65,12 +65,12 @@ export class GridMesh extends Mesh {
         vertexData[v++] = 0; vertexData[v++] = 0.85; vertexData[v++] = 1; vertexData[v++] = 1;
 
         const vertexFormat: VertexFormat = VertexFormat.Position | VertexFormat.Color;
-        this.SetVertexData(vertexFormat, MeshTopology.Lines, vertexCount, vertexData);
+        this.SetVertexData(vertexFormat, MeshTopology.Lines, vertexCount, vertexData, false);
 
         let min: vec3 = vec3.fromValues(-this.gridSize, -this.gridSize, -this.gridSize);
         let max: vec3 = vec3.fromValues(this.gridSize, this.gridSize, this.gridSize);
         let radius: number = vec3.len(max);
-        this.SetBounds({ min: min, max: max }, { center: vec3.fromValues(0, 0, 0), radius: radius });
+        this.SetBounds(min, max); // { center: vec3.fromValues(0, 0, 0), radius: radius }
 
         this.isLoaded = true;
     }

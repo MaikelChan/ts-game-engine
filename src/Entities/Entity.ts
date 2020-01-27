@@ -18,4 +18,8 @@ export abstract class Entity {
 
         this.transform = new Transform();
     }
+
+    public Update(deltaTime: number): void {
+        this.transform.Update(deltaTime);
+    }
 }

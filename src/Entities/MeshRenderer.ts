@@ -2,13 +2,14 @@ import { Entity } from "./Entity";
 import { Scene } from "../Scene";
 import { Mesh, VertexFormat, ATTRIBUTE_INFO, VERTEX_POSITION_SIZE, VERTEX_COLOR_SIZE } from "../Meshes";
 import { Material, VertexColoredMaterial, POSITION_ATTRIBUTE, COLOR_ATTRIBUTE } from "../Materials";
-import { IRenderable, IGlobalUniforms, IDisposable, IBoundingBox } from "../Interfaces";
+import { IRenderable, IGlobalUniforms, IDisposable } from "../Interfaces";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
 import { GraphicsSystem } from "../Systems/Graphics/GraphicsSystem";
 import { FLOAT_SIZE } from "../Constants";
 import { Utils } from "../Utils";
 import { WireBoxMesh } from "../Meshes/WireBoxMesh";
-import { vec4 } from "gl-matrix";
+import { vec4, vec3, mat4 } from "gl-matrix";
+import { BoundingBox } from "../Math/BoundingBox";
 
 export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
@@ -24,9 +25,9 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
     get IsRenderable(): boolean { return this.mesh !== undefined && this.material !== undefined; }
 
-    private vao: WebGLVertexArrayObjectOES;
+    private aabb: BoundingBox;
 
-    private globalUniforms: IGlobalUniforms;
+    private vao: WebGLVertexArrayObjectOES;
 
     constructor(scene: Scene, name: string) {
         super(scene, name);
@@ -40,7 +41,9 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         this.vao = vao;
         Utils.DebugName(this.vao, `${this.Name} VAO`);
 
-        this.globalUniforms = this.CreateGlobalUniformsObject();
+        this.aabb = new BoundingBox();
+
+        this.Transform.OnTransformChange = () => this.UpdateAABB();
     }
 
     public Dispose(): void {
@@ -53,8 +56,8 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         if (this.material === undefined) return;
 
         this.pipelineState.CurrentShader = this.material.Shader;
-        this.UpdateGlobalUniforms();
-        this.material.SetUniforms(this.globalUniforms);
+        const globalUniforms: IGlobalUniforms = this.GetGlobalUniformsObject();
+        this.material.SetUniforms(globalUniforms);
 
         this.pipelineState.CurrentVAO = this.vao;
 
@@ -63,7 +66,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         else
             this.context.drawArrays(this.mesh.MeshTopology, 0, this.mesh.VertexCount);
 
-        if (this.Scene.Game.Settings.ShowBounds) this.RenderBoundsDebug();
+        this.RenderBoundsDebug(globalUniforms);
     }
 
     public SetMesh(mesh: Mesh): void {
@@ -77,7 +80,8 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         this.mesh = mesh;
         this.UpdateVAO();
 
-        this.CreateBoundsDebug(mesh.BoundingBox);
+        this.UpdateAABB();
+        this.CreateBoundsDebug();
     }
 
     public SetMaterial(material: Material): void {
@@ -114,7 +118,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         }
     }
 
-    private CreateGlobalUniformsObject(): IGlobalUniforms {
+    private GetGlobalUniformsObject(): IGlobalUniforms {
         return {
             modelMatrix: this.Transform.ModelMatrix,
             viewMatrix: this.Scene.Camera.ViewMatrix,
@@ -127,88 +131,113 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         }
     }
 
-    private UpdateGlobalUniforms(): void {
-        this.globalUniforms.modelMatrix = this.Transform.ModelMatrix;
-        this.globalUniforms.viewMatrix = this.Scene.Camera.ViewMatrix;
-        this.globalUniforms.projectionMatrix = this.Scene.Camera.ProjectionMatrix;
-        this.globalUniforms.normalMatrix = this.Transform.NormalMatrix;
-        this.globalUniforms.viewPosition = this.Scene.Camera.Transform.Position;
-        this.globalUniforms.ambientLight = this.Scene.AmbientLight;
-        this.globalUniforms.pointLightsData = this.Scene.PointLightsData;
-        this.globalUniforms.pointLightsCount = this.Scene.PointLightsCount;
+    private UpdateAABB(): void {
+        if (this.mesh === undefined) return;
+
+        let points: vec3[] = this.mesh.BoundingBox.GetPoints();
+
+        this.aabb.min[0] = Number.MAX_VALUE; this.aabb.min[1] = Number.MAX_VALUE; this.aabb.min[2] = Number.MAX_VALUE;
+        this.aabb.max[0] = -Number.MAX_VALUE; this.aabb.max[1] = -Number.MAX_VALUE; this.aabb.max[2] = -Number.MAX_VALUE;
+
+        for (let p: number = 0; p < points.length; p++) {
+            let point = vec3.transformMat4(points[p], points[p], this.Transform.ModelMatrix);
+
+            if (point[0] < this.aabb.min[0]) this.aabb.min[0] = point[0];
+            else if (point[0] > this.aabb.max[0]) this.aabb.max[0] = point[0];
+
+            if (point[1] < this.aabb.min[1]) this.aabb.min[1] = point[1];
+            else if (point[1] > this.aabb.max[1]) this.aabb.max[1] = point[1];
+
+            if (point[2] < this.aabb.min[2]) this.aabb.min[2] = point[2];
+            else if (point[2] > this.aabb.max[2]) this.aabb.max[2] = point[2];
+        }
+
+        this.aabbMeshDirty = true;
     }
 
     // Bounds debug -----------------------------------------------------------------------------------------------------------
 
-    private boundingBoxMesh: WireBoxMesh | undefined;
-    private boundingBoxMaterial: VertexColoredMaterial | undefined;
-    private boundingBoxVAO: WebGLVertexArrayObjectOES | undefined;
+    private aabbMesh: WireBoxMesh | undefined;
+    private aabbMaterial: VertexColoredMaterial | undefined;
+    private aabbVAO: WebGLVertexArrayObjectOES | undefined;
 
-    private CreateBoundsDebug(boundingBox: IBoundingBox): void {
+    private aabbMeshDirty: boolean = false;
+
+    private readonly aabbColor: vec4 = vec4.fromValues(0.1, 1, 0.45, 1);
+
+    private CreateBoundsDebug(): void {
 
         // Create mesh
 
-        if (this.boundingBoxMesh !== undefined) {
-            this.boundingBoxMesh.Dispose();
+        if (this.aabbMesh !== undefined) {
+            this.aabbMesh.Dispose();
         }
 
-        this.boundingBoxMesh = new WireBoxMesh(this.Scene, boundingBox, vec4.fromValues(0, 1, 0, 1));
+        this.aabbMesh = new WireBoxMesh(this.Scene, this.aabb, this.aabbColor);
 
         // Create material
 
-        if (this.boundingBoxMaterial === undefined) {
-            this.boundingBoxMaterial = new VertexColoredMaterial(this.Scene);
+        if (this.aabbMaterial === undefined) {
+            this.aabbMaterial = new VertexColoredMaterial(this.Scene);
         }
 
         // Create VAO
 
-        if (this.boundingBoxVAO !== undefined) {
-            this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.boundingBoxVAO);
+        if (this.aabbVAO !== undefined) {
+            this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.aabbVAO);
         }
 
         let vao: WebGLVertexArrayObjectOES | null = this.graphicsSystem.Ext_VAO.createVertexArrayOES();
         if (vao === null) throw new Error("Unable to create bounding box Vertex Attribute Object.");
-        this.boundingBoxVAO = vao;
-        Utils.DebugName(this.boundingBoxVAO, `${this.Name} bounding box VAO`);
+        this.aabbVAO = vao;
+        Utils.DebugName(this.aabbVAO, `${this.Name} bounding box VAO`);
 
         // Configure VAO
 
-        this.pipelineState.CurrentVAO = this.boundingBoxVAO;
-        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.boundingBoxMesh.VertexBuffer);
-        this.context.bindBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, this.boundingBoxMesh.IndexBuffer !== undefined ? this.boundingBoxMesh.IndexBuffer : null);
+        this.pipelineState.CurrentVAO = this.aabbVAO;
+        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.aabbMesh.VertexBuffer);
+        this.context.bindBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, this.aabbMesh.IndexBuffer !== undefined ? this.aabbMesh.IndexBuffer : null);
 
         let stride: number = (FLOAT_SIZE * VERTEX_POSITION_SIZE) + (FLOAT_SIZE * VERTEX_COLOR_SIZE);
 
-        let attributeLocation: number | undefined = this.boundingBoxMaterial.Shader.Attributes.get(POSITION_ATTRIBUTE);
+        let attributeLocation: number | undefined = this.aabbMaterial.Shader.Attributes.get(POSITION_ATTRIBUTE);
         if (attributeLocation !== undefined) {
             this.context.vertexAttribPointer(attributeLocation, VERTEX_POSITION_SIZE, WebGLRenderingContext.FLOAT, false, stride, 0);
             this.context.enableVertexAttribArray(attributeLocation);
         }
 
-        attributeLocation = this.boundingBoxMaterial.Shader.Attributes.get(COLOR_ATTRIBUTE);
+        attributeLocation = this.aabbMaterial.Shader.Attributes.get(COLOR_ATTRIBUTE);
         if (attributeLocation !== undefined) {
             this.context.vertexAttribPointer(attributeLocation, VERTEX_COLOR_SIZE, WebGLRenderingContext.FLOAT, false, stride, FLOAT_SIZE * VERTEX_POSITION_SIZE);
             this.context.enableVertexAttribArray(attributeLocation);
         }
     }
 
-    private RenderBoundsDebug(): void {
-        if (this.boundingBoxMesh === undefined) return;
-        if (this.boundingBoxMaterial === undefined) return;
+    private RenderBoundsDebug(globalUniforms: IGlobalUniforms): void {
+        if (!this.Scene.Game.Settings.ShowBounds) return;
+        if (this.aabbMesh === undefined) return;
+        if (this.aabbMaterial === undefined) return;
+        if (this.aabbVAO === undefined) return;
 
-        this.pipelineState.CurrentShader = this.boundingBoxMaterial.Shader;
-        this.boundingBoxMaterial.SetUniforms(this.globalUniforms);
+        if (this.aabbMeshDirty) {
+            this.aabbMesh.UpdateBounds(this.aabb, this.aabbColor);
+            this.aabbMeshDirty = false;
+        }
 
-        this.pipelineState.CurrentVAO = this.boundingBoxVAO;
+        this.pipelineState.CurrentShader = this.aabbMaterial.Shader;
+        globalUniforms.modelMatrix = mat4.create(); // Override model matrix as we don't use it for AABB
+        this.aabbMaterial.SetUniforms(globalUniforms);
 
-        if (this.boundingBoxMesh.IndexBuffer)
-            this.context.drawElements(this.boundingBoxMesh.MeshTopology, this.boundingBoxMesh.IndexCount, WebGLRenderingContext.UNSIGNED_SHORT, 0);
+        this.pipelineState.CurrentVAO = this.aabbVAO;
+
+        if (this.aabbMesh.IndexBuffer)
+            this.context.drawElements(this.aabbMesh.MeshTopology, this.aabbMesh.IndexCount, WebGLRenderingContext.UNSIGNED_SHORT, 0);
         else
-            this.context.drawArrays(this.boundingBoxMesh.MeshTopology, 0, this.boundingBoxMesh.VertexCount);
+            this.context.drawArrays(this.aabbMesh.MeshTopology, 0, this.aabbMesh.VertexCount);
     }
 
     private DisposeBoundsDebug(): void {
-        if (this.boundingBoxMesh !== undefined) this.boundingBoxMesh.Dispose();
-        if (this.boundingBoxVAO !== undefined) this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.boundingBoxVAO);
+        if (this.aabbMesh !== undefined) this.aabbMesh.Dispose();
+        if (this.aabbVAO !== undefined) this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.aabbVAO);
     }
 }

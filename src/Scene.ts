@@ -49,10 +49,15 @@ export abstract class Scene implements IDisposable {
 
     public Start(): void { }
 
-    public Update(deltaTime: number): void { }
+    public Update(deltaTime: number): void {
+        for (let entity of this.entities) {
+            entity.Update(deltaTime);
+        }
+
+        this.camera.Update(deltaTime);
+    }
 
     public Render(): void {
-
         this.BuildLightsData();
 
         for (let meshRenderer of this.meshRenderers) {

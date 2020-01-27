@@ -41,21 +41,3 @@ export interface IGlobalUniforms {
     pointLightsData: Float32Array;
     pointLightsCount: number;
 }
-
-export interface IBoundingBox {
-    min: vec3;
-    max: vec3;
-}
-
-export interface IBoundingSphere {
-    center: vec3;
-    radius: number;
-}
-
-// export interface IUniformData { location: WebGLUniformLocation; }
-// export interface IFloat1UniformData extends IUniformData { value?: number; }
-// export interface IFloat2UniformData extends IUniformData { value?: vec2; }
-// export interface IFloat3UniformData extends IUniformData { value?: vec3; }
-// export interface IFloat4UniformData extends IUniformData { value?: vec4; }
-// export interface IMatrix3UniformData extends IUniformData { value?: mat3; }
-// export interface IMatrix4UniformData extends IUniformData { value?: mat4; }

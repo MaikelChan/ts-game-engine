@@ -94,12 +94,12 @@ export class MDLMesh extends Mesh {
         if ((vertexFormat & VertexFormat.UV1) !== 0) vertexDataSize += VERTEX_UV_SIZE;
 
         const vertexData: Float32Array = new Float32Array(buffer, o, vertexDataSize * vertexCount);
-        this.SetVertexData(vertexFormat, MeshTopology.Triangles, vertexCount, vertexData);
+        this.SetVertexData(vertexFormat, MeshTopology.Triangles, vertexCount, vertexData, false);
 
         o += vertexDataSize * vertexCount * FLOAT_SIZE;
         const indexData: Uint16Array = new Uint16Array(buffer, o, indexCount);
         this.SetIndexData(indexData);
-        this.SetBounds({ min: boundsMin, max: boundsMax }, { center: center, radius: radius });
+        this.SetBounds(boundsMin, boundsMax); // { center: center, radius: radius }
 
         this.isLoaded = true;
 

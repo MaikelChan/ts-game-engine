@@ -107,9 +107,9 @@ export class SphereMesh extends Mesh {
         }
 
         const vertexFormat: VertexFormat = VertexFormat.Position | VertexFormat.Color | VertexFormat.Normal | VertexFormat.UV0;
-        this.SetVertexData(vertexFormat, MeshTopology.Triangles, vertexCount, vertexData);
+        this.SetVertexData(vertexFormat, MeshTopology.Triangles, vertexCount, vertexData, false);
         this.SetIndexData(indexData);
-        this.SetBounds({ min: vec3.fromValues(-0.5, -0.5, -0.5), max: vec3.fromValues(0.5, 0.5, 0.5) }, { center: vec3.fromValues(0, 0, 0), radius: 0.707107 });
+        this.SetBounds(vec3.fromValues(-0.5, -0.5, -0.5), vec3.fromValues(0.5, 0.5, 0.5)); // { center: vec3.fromValues(0, 0, 0), radius: 0.707107 }
 
         this.isLoaded = true;
     }

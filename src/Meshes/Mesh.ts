@@ -1,9 +1,10 @@
-import { IDisposable, IVertexData, IAttributeTypeInfo, IBoundingBox, IBoundingSphere } from "../Interfaces";
+import { IDisposable, IVertexData, IAttributeTypeInfo } from "../Interfaces";
 import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, UV1_ATTRIBUTE } from "../Materials/Shader";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
 import { Scene } from "../Scene";
 import { Utils } from "../Utils";
 import { vec3 } from "gl-matrix";
+import { BoundingBox } from "../Math/BoundingBox";
 
 export const enum VertexFormat { Position = 1, Color = 2, Normal = 4, UV0 = 8, UV1 = 16 }
 export const enum IndexFormat { UInt16, UInt32 }
@@ -51,11 +52,10 @@ export class Mesh implements IDisposable {
     private indexCount: number;
     get IndexCount(): number { return this.indexCount; }
 
-    private boundingBox: IBoundingBox;
-    get BoundingBox(): IBoundingBox { return this.boundingBox; }
+    private boundingBox: BoundingBox;
+    get BoundingBox(): BoundingBox { return this.boundingBox; }
 
-    private boundingSphere: IBoundingSphere;
-    get BoundingSphere(): IBoundingSphere { return this.boundingSphere; }
+    private isVertexBufferDynamic: boolean;
 
     constructor(scene: Scene) {
         this.context = scene.Game.GraphicsSystem.Context;
@@ -73,8 +73,9 @@ export class Mesh implements IDisposable {
         this.vertexCount = 0;
         this.indexCount = 0;
 
-        this.boundingBox = { min: vec3.create(), max: vec3.create() }
-        this.boundingSphere = { center: vec3.create(), radius: 0 }
+        this.boundingBox = new BoundingBox();
+
+        this.isVertexBufferDynamic = false;
     }
 
     Dispose(): void {
@@ -84,7 +85,7 @@ export class Mesh implements IDisposable {
         if (this.indexBuffer) this.context.deleteBuffer(this.indexBuffer);
     }
 
-    protected SetVertexData(vertexFormat: VertexFormat, meshTopology: MeshTopology, vertexCount: number, vertexData: Float32Array): void {
+    protected SetVertexData(vertexFormat: VertexFormat, meshTopology: MeshTopology, vertexCount: number, vertexData: Float32Array, isDynamic: boolean): void {
         let stride: number = 0;
         if ((vertexFormat & VertexFormat.Position) !== 0) stride += VERTEX_POSITION_SIZE;
         if ((vertexFormat & VertexFormat.Color) !== 0) stride += VERTEX_COLOR_SIZE;
@@ -98,11 +99,25 @@ export class Mesh implements IDisposable {
         this.meshTopology = meshTopology;
         this.vertexCount = vertexCount;
 
-        // Make sure current VAO is null so we don't modify other VAO when binding buffers
-        this.pipelineState.CurrentVAO = undefined;
+        // It's not necessary to unbind the current VAO, as binding an array buffer won't modify the
+        // array buffer/s of the current VAO. They are referenced in the vertexAttribPointer calls, not in the VAO.
 
         this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.vertexBuffer);
-        this.context.bufferData(WebGLRenderingContext.ARRAY_BUFFER, vertexData, WebGLRenderingContext.STATIC_DRAW);
+        this.context.bufferData(WebGLRenderingContext.ARRAY_BUFFER, vertexData, isDynamic ? WebGLRenderingContext.DYNAMIC_DRAW : WebGLRenderingContext.STATIC_DRAW);
+        this.isVertexBufferDynamic = isDynamic;
+    }
+
+    protected UpdateVertexData(vertexData: Float32Array): void {
+        if (!this.isVertexBufferDynamic) {
+            console.error(`${this.constructor.name}'s vertex buffer is not dynamic.`);
+            return;
+        }
+
+        // It's not necessary to unbind the current VAO, as binding an array buffer won't modify the
+        // array buffer/s of the current VAO. They are referenced in the vertexAttribPointer calls, not in the VAO.
+
+        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.vertexBuffer);
+        this.context.bufferSubData(WebGLRenderingContext.ARRAY_BUFFER, 0, vertexData);
     }
 
     protected SetIndexData(indices: Uint16Array): void {
@@ -114,7 +129,8 @@ export class Mesh implements IDisposable {
             Utils.DebugName(this.indexBuffer, `${this.constructor.name} index buffer`);
         }
 
-        // Make sure current VAO is null so we don't modify other VAO when binding buffers
+        // Make sure current VAO is null so we don't accidentally modify the element buffer of other VAO.
+        // Unlike array buffers, element buffers are actually referenced directly in the VAO.
         this.pipelineState.CurrentVAO = undefined;
 
         this.indexCount = indices.length;
@@ -122,8 +138,8 @@ export class Mesh implements IDisposable {
         this.context.bufferData(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, indices, WebGLRenderingContext.STATIC_DRAW);
     }
 
-    protected SetBounds(boundingBox: IBoundingBox, boundingSphere: IBoundingSphere) {
-        this.boundingBox = boundingBox;
-        this.boundingSphere = boundingSphere;
+    protected SetBounds(min: vec3, max: vec3) {
+        this.boundingBox.min = min;
+        this.boundingBox.max = max;
     }
 }

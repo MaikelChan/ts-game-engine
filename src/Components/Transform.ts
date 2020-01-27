@@ -5,15 +5,15 @@ export class Transform extends Component {
 
     private position: vec3;
     get Position(): vec3 { return this.position; }
-    set Position(position: vec3) { if (vec3.equals(position, this.position)) return; this.position = position; this.UpdateTransform(); }
+    set Position(position: vec3) { if (vec3.equals(position, this.position)) return; this.position = position; this.isTransformDirty = true; }
 
     private rotation: quat;
     get Rotation(): quat { return this.rotation; }
-    set Rotation(rotation: quat) { if (quat.equals(rotation, this.rotation)) return; this.rotation = rotation; this.UpdateTransform(); }
+    set Rotation(rotation: quat) { if (quat.equals(rotation, this.rotation)) return; this.rotation = rotation; this.isTransformDirty = true; }
 
     private scale: vec3;
     get Scale(): vec3 { return this.scale; }
-    set Scale(scale: vec3) { if (vec3.equals(scale, this.scale)) return; this.scale = scale; this.UpdateTransform(); }
+    set Scale(scale: vec3) { if (vec3.equals(scale, this.scale)) return; this.scale = scale; this.isTransformDirty = true; }
 
     private modelMatrix: mat4;
     get ModelMatrix(): mat4 { return this.modelMatrix; }
@@ -32,6 +32,8 @@ export class Transform extends Component {
 
     public OnTransformChange?: () => void;
 
+    private isTransformDirty: boolean;
+
     constructor() {
         super();
 
@@ -46,7 +48,11 @@ export class Transform extends Component {
         this.up = vec3.fromValues(0, 1, 0);
         this.forward = vec3.fromValues(0, 0, -1);
 
-        this.UpdateTransform();
+        this.isTransformDirty = true;
+    }
+
+    public Update(deltaTime: number) {
+        if (this.isTransformDirty) this.UpdateTransform();
     }
 
     private UpdateTransform(): void {
@@ -75,5 +81,7 @@ export class Transform extends Component {
         this.forward[2] = -this.modelMatrix[10];
 
         this.OnTransformChange?.();
+
+        this.isTransformDirty = false;
     }
 }
