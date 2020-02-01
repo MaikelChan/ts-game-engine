@@ -1,6 +1,6 @@
 {
     "name": "ts-game-engine",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "keywords": [
@@ -33,7 +33,7 @@
     },
     "devDependencies": {
         "@types/gl-matrix": "^2.4.5",
-        "rimraf": "^3.0.0",
+        "rimraf": "^3.0.1",
         "typescript": "^3.7.5"
     }
 }

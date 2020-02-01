@@ -10,6 +10,7 @@ import { Utils } from "../Utils";
 import { WireBoxMesh } from "../Meshes/WireBoxMesh";
 import { vec4, vec3, mat4 } from "gl-matrix";
 import { BoundingBox } from "../Math/BoundingBox";
+import { IntersectionResults } from "../Math/Frustum";
 
 export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
@@ -54,6 +55,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
     public Render(): void {
         if (this.mesh === undefined) return;
         if (this.material === undefined) return;
+        if (this.IsCulled()) return;
 
         this.pipelineState.CurrentShader = this.material.Shader;
         const globalUniforms: IGlobalUniforms = this.GetGlobalUniformsObject();
@@ -131,6 +133,8 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         }
     }
 
+    // Bounds and Culling -----------------------------------------------------------------------------------------------------
+
     private UpdateAABB(): void {
         if (this.mesh === undefined) return;
 
@@ -153,6 +157,10 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         }
 
         this.aabbMeshDirty = true;
+    }
+
+    private IsCulled(): boolean {
+        return this.Scene.Camera.Frustum.CheckBoundsIntersection(this.aabb) === IntersectionResults.Outside;
     }
 
     // Bounds debug -----------------------------------------------------------------------------------------------------------

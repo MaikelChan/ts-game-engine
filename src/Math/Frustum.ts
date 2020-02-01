@@ -1,4 +1,8 @@
 import { Plane } from "./Plane";
+import { BoundingBox } from "./BoundingBox";
+import { vec3 } from "gl-matrix";
+
+export const enum IntersectionResults { Inside, Outside, Intersect };
 
 export class Frustum {
 
@@ -9,12 +13,17 @@ export class Frustum {
         this.planes = [new Plane(), new Plane(), new Plane(), new Plane(), new Plane(), new Plane()];
     }
 
-    // public CheckBoundsIntersection(bounds: Bounds): boolean {
-    //     for (let p: number = 0; p < 6; p++) {
-    //         let distance: number = this.planes[p].DistanceFromPoint(bounds.Center);
-    //         if (distance < -bounds.Radius) return true;
-    //     }
+    public CheckBoundsIntersection(bounds: BoundingBox): IntersectionResults {
+        let result: IntersectionResults = IntersectionResults.Inside;
 
-    //     return false;
-    // }
+        for (let p: number = 0; p < 6; p++) {
+            const positive: vec3 = bounds.GetPositiveVertexFromPlane(this.planes[p]);
+            const negative: vec3 = bounds.GetNegativeVertexFromPlane(this.planes[p]);
+
+            if (this.planes[p].DistanceFromPoint(positive) < 0) return IntersectionResults.Outside;
+            else if (this.planes[p].DistanceFromPoint(negative) < 0) result = IntersectionResults.Intersect;
+        }
+
+        return result;
+    }
 }

@@ -24,6 +24,7 @@ export class Camera extends Entity {
     get ProjectionMatrix(): mat4 { return this.projectionMatrix; }
 
     private frustum: Frustum;
+    get Frustum(): Frustum { return this.frustum; }
 
     private isViewMatrixDirty: boolean;
     private isProjectionMatrixDirty: boolean;
@@ -50,7 +51,7 @@ export class Camera extends Entity {
 
     public Update(deltaTime: number): void {
         super.Update(deltaTime);
-        
+
         if (this.isViewMatrixDirty) this.UpdateViewMatrix();
         if (this.isProjectionMatrixDirty) this.UpdateProjectionMatrix();
         if (this.isFrustumDirty) this.UpdateFrustum();
