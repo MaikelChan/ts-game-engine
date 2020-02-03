@@ -8,12 +8,12 @@
   "dependencies": {
     "dat.gui": "^0.7.6",
     "gl-matrix": "^3.1.0",
-    "ts-game-engine": "0.0.6"
+    "ts-game-engine": "0.0.7"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^11.0.1",
+    "@rollup/plugin-commonjs": "^11.0.2",
     "@rollup/plugin-node-resolve": "^7.0.0",
-    "@rollup/plugin-typescript": "^2.1.0",
+    "@rollup/plugin-typescript": "^3.0.0",
     "@types/dat.gui": "^0.7.5",
     "@types/gl-matrix": "^2.4.5",
     "rimraf": "^3.0.1",
