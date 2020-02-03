@@ -4,10 +4,14 @@ import { GraphicsSystem } from "./Systems/Graphics/GraphicsSystem";
 import { Shader } from "./Materials";
 import { Texture2D } from "./Systems/Graphics/Texture2D";
 import { Settings } from "./Settings";
+import { InputSystem } from "./Systems/Input/InputSystem";
 
 export abstract class Game implements IDisposable {
     private graphicsSystem: GraphicsSystem;
     get GraphicsSystem(): GraphicsSystem { return this.graphicsSystem; }
+
+    private inputSystem: InputSystem;
+    get InputSystem(): InputSystem { return this.inputSystem; }
 
     private settings: Settings;
     get Settings(): Settings { return this.settings; }
@@ -24,6 +28,7 @@ export abstract class Game implements IDisposable {
 
     constructor(canvas: HTMLCanvasElement) {
         this.graphicsSystem = new GraphicsSystem(canvas);
+        this.inputSystem = new InputSystem();
         this.settings = new Settings();
 
         this.shouldUpdate = false;
@@ -36,17 +41,17 @@ export abstract class Game implements IDisposable {
         if (!this.shouldUpdate) return;
         if (this.scene === undefined) return;
 
-        let context: WebGLRenderingContext = this.graphicsSystem.Context;
-
         if (this.initialTime < 0) this.initialTime = now;
         let elapsedMilliseconds = now - this.initialTime;
         let deltaTime = (elapsedMilliseconds - this.previousFrameElapsedMilliseconds) / 1000;
         this.previousFrameElapsedMilliseconds = elapsedMilliseconds;
         this.elapsedSeconds = elapsedMilliseconds / 1000;
 
+        this.inputSystem.Update();
+
         this.scene.Update(deltaTime);
 
-        context.clear(context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT);
+        this.graphicsSystem.Context.clear(WebGLRenderingContext.COLOR_BUFFER_BIT | WebGLRenderingContext.DEPTH_BUFFER_BIT);
         this.scene.Render();
 
         requestAnimationFrame(this.Update);

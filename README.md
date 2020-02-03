@@ -12,6 +12,7 @@ I'll work on this on my spare time, and it's not meant, by any means, to be used
 - Textures.
 - Frustum culling.
 - It caches the WebGL pipeline state to avoid unnecessary state changes before each draw call.
+- Input Manager.
 
 ## Coming soon
 

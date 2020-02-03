@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { vec3, quat, mat4, mat3 } from "gl-matrix";
+import { vec3, quat, mat4, mat3, glMatrix } from "gl-matrix";
 
 export class Transform extends Component {
 
@@ -51,8 +51,46 @@ export class Transform extends Component {
         this.isTransformDirty = true;
     }
 
-    public Update(deltaTime: number) {
+    public Update(deltaTime: number): void {
         if (this.isTransformDirty) this.UpdateTransform();
+    }
+
+    public Move(direction: vec3): void {
+        if (direction[0] === 0 && direction[1] === 0 && direction[2] === 0) return;
+        vec3.add(this.position, this.position, direction);
+        this.isTransformDirty = true;
+    }
+
+    public Rotate(x: number, y: number, z: number, worldSpace: boolean): void {
+        if (x === 0 && y === 0 && z === 0) return;
+
+        // quat.rotateX(this.rotation, this.rotation, glMatrix.toRadian(x));
+        // quat.rotateY(this.rotation, this.rotation, glMatrix.toRadian(y));
+        // quat.rotateZ(this.rotation, this.rotation, glMatrix.toRadian(z));
+
+        let q: quat = quat.create();
+        quat.fromEuler(q, x, y, z);
+
+        if (worldSpace) {
+            let tempQ: quat = quat.create();
+
+            let invertRotation: quat = quat.create();
+            quat.invert(invertRotation, this.rotation);
+
+            quat.multiply(this.rotation, this.rotation, quat.multiply(tempQ, invertRotation, quat.multiply(tempQ, q, this.rotation)));
+        }
+        else {
+            quat.multiply(this.rotation, this.rotation, q);
+        }
+
+        this.isTransformDirty = true;
+    }
+
+    public SetEulerAngles(x: number, y: number, z: number): void {
+        const newRotation: quat = quat.create();
+        quat.fromEuler(newRotation, x, y, z);
+
+        this.Rotation = newRotation;
     }
 
     private UpdateTransform(): void {
