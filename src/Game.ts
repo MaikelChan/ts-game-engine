@@ -51,7 +51,7 @@ export abstract class Game implements IDisposable {
 
         this.scene.Update(deltaTime);
 
-        this.graphicsSystem.Context.clear(WebGLRenderingContext.COLOR_BUFFER_BIT | WebGLRenderingContext.DEPTH_BUFFER_BIT);
+        this.graphicsSystem.Context.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT);
         this.scene.Render();
 
         requestAnimationFrame(this.Update);

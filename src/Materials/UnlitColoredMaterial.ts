@@ -33,8 +33,8 @@ export class UnlitColoredMaterial extends Material {
     }
 }
 
-const vsSource: string = `
-attribute vec3 ${POSITION_ATTRIBUTE};
+const vsSource: string = `#version 300 es
+in vec3 ${POSITION_ATTRIBUTE};
 
 uniform mat4 ${MODEL_MATRIX_UNIFORM};
 uniform mat4 ${VIEW_MATRIX_UNIFORM};
@@ -44,11 +44,13 @@ void main() {
     gl_Position = ${PROJECTION_MATRIX_UNIFORM} * ${VIEW_MATRIX_UNIFORM} * ${MODEL_MATRIX_UNIFORM} * vec4(${POSITION_ATTRIBUTE}, 1);
 }`;
 
-const fsSource: string = `
+const fsSource: string = `#version 300 es
 precision mediump float;
 
 uniform vec3 uColor;
 
+out vec4 fragColor;
+
 void main() {
-    gl_FragColor = vec4(uColor, 1);
+    fragColor = vec4(uColor, 1);
 }`;

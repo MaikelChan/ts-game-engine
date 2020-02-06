@@ -73,21 +73,21 @@ export class BlinnPhongMaterial extends Material {
     }
 }
 
-const vsSource: string = `
-attribute vec3 ${POSITION_ATTRIBUTE};
-attribute vec4 ${COLOR_ATTRIBUTE};
-attribute vec3 ${NORMAL_ATTRIBUTE};
-attribute vec2 ${UV0_ATTRIBUTE};
+const vsSource: string = `#version 300 es
+in vec3 ${POSITION_ATTRIBUTE};
+in vec4 ${COLOR_ATTRIBUTE};
+in vec3 ${NORMAL_ATTRIBUTE};
+in vec2 ${UV0_ATTRIBUTE};
 
 uniform mat4 ${MODEL_MATRIX_UNIFORM};
 uniform mat4 ${VIEW_MATRIX_UNIFORM};
 uniform mat4 ${PROJECTION_MATRIX_UNIFORM};
 uniform mat3 ${NORMAL_MATRIX_UNIFORM};
 
-varying vec4 vWorldPosition;
-varying vec3 vWorldNormal;
-varying vec4 vColor;
-varying vec2 vUV0;
+out vec4 vWorldPosition;
+out vec3 vWorldNormal;
+out vec4 vColor;
+out vec2 vUV0;
 
 void main() {
     vec4 worldPosition = ${MODEL_MATRIX_UNIFORM} * vec4(${POSITION_ATTRIBUTE}, 1);
@@ -98,13 +98,13 @@ void main() {
     vUV0 = ${UV0_ATTRIBUTE};
 }`;
 
-const fsSource: string = `
+const fsSource: string = `#version 300 es
 precision mediump float;
 
-varying vec4 vWorldPosition;
-varying vec3 vWorldNormal;
-varying vec4 vColor;
-varying vec2 vUV0;
+in vec4 vWorldPosition;
+in vec3 vWorldNormal;
+in vec4 vColor;
+in vec2 vUV0;
 
 uniform vec3 ${VIEW_POSITION_UNIFORM};
 uniform vec3 ${AMBIENT_LIGHT_UNIFORM};
@@ -115,6 +115,8 @@ uniform vec3 uColor;
 uniform sampler2D mainTexture;
 uniform vec2 uSpecularPower;
 uniform sampler2D glossTexture;
+
+out vec4 fragColor;
 
 #define POINT_LIGHT_CONSTANT 1.0
 #define POINT_LIGHT_LINEAR 0.22
@@ -141,8 +143,8 @@ void main() {
     vec3 normalizedWorldNormal = normalize(vWorldNormal);
 	vec3 viewDir = normalize(${VIEW_POSITION_UNIFORM} - vWorldPosition.xyz);
 
-	vec3 diffuseColor = (texture2D(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
-	float specularTex = texture2D(glossTexture, vUV0).x;
+	vec3 diffuseColor = (texture(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
+	float specularTex = texture(glossTexture, vUV0).x;
 	float specularStrength = mix(0.25, uSpecularPower.x, specularTex);
 	float specularPower = mix(1.0, uSpecularPower.y, specularTex);
 
@@ -156,5 +158,5 @@ void main() {
 		lights += CalcPointLight(lightPositionIntensity.xyz, lightPositionIntensity.w, lightColor.rgb, diffuseColor, specularStrength, specularPower, normalizedWorldNormal, viewDir);
 	}
 
-	gl_FragColor = vec4(lights + ${AMBIENT_LIGHT_UNIFORM} * diffuseColor, 1);
+	fragColor = vec4(lights + ${AMBIENT_LIGHT_UNIFORM} * diffuseColor, 1);
 }`;

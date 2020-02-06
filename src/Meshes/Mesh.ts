@@ -1,4 +1,4 @@
-import { IDisposable, IVertexData, IAttributeTypeInfo } from "../Interfaces";
+import { IDisposable, IAttributeTypeInfo } from "../Interfaces";
 import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, UV1_ATTRIBUTE } from "../Materials/Shader";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
 import { Scene } from "../Scene";
@@ -25,7 +25,7 @@ export const ATTRIBUTE_INFO: IAttributeTypeInfo[] = [
 
 export class Mesh implements IDisposable {
 
-    private context: WebGLRenderingContext;
+    private context: WebGL2RenderingContext;
     private pipelineState: PipelineState;
 
     protected isLoaded: boolean;
@@ -102,8 +102,8 @@ export class Mesh implements IDisposable {
         // It's not necessary to unbind the current VAO, as binding an array buffer won't modify the
         // array buffer/s of the current VAO. They are referenced in the vertexAttribPointer calls, not in the VAO.
 
-        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.vertexBuffer);
-        this.context.bufferData(WebGLRenderingContext.ARRAY_BUFFER, vertexData, isDynamic ? WebGLRenderingContext.DYNAMIC_DRAW : WebGLRenderingContext.STATIC_DRAW);
+        this.context.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.vertexBuffer);
+        this.context.bufferData(WebGL2RenderingContext.ARRAY_BUFFER, vertexData, isDynamic ? WebGL2RenderingContext.DYNAMIC_DRAW : WebGL2RenderingContext.STATIC_DRAW);
         this.isVertexBufferDynamic = isDynamic;
     }
 
@@ -116,8 +116,8 @@ export class Mesh implements IDisposable {
         // It's not necessary to unbind the current VAO, as binding an array buffer won't modify the
         // array buffer/s of the current VAO. They are referenced in the vertexAttribPointer calls, not in the VAO.
 
-        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.vertexBuffer);
-        this.context.bufferSubData(WebGLRenderingContext.ARRAY_BUFFER, 0, vertexData);
+        this.context.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.vertexBuffer);
+        this.context.bufferSubData(WebGL2RenderingContext.ARRAY_BUFFER, 0, vertexData);
     }
 
     protected SetIndexData(indices: Uint16Array): void {
@@ -134,8 +134,8 @@ export class Mesh implements IDisposable {
         this.pipelineState.CurrentVAO = undefined;
 
         this.indexCount = indices.length;
-        this.context.bindBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        this.context.bufferData(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, indices, WebGLRenderingContext.STATIC_DRAW);
+        this.context.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        this.context.bufferData(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, indices, WebGL2RenderingContext.STATIC_DRAW);
     }
 
     protected SetBounds(min: vec3, max: vec3) {

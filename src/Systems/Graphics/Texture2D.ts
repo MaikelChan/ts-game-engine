@@ -5,7 +5,7 @@ export const TEMPORARY_TEXTURE_NAME: string = "_TEMPORARY_TEXTURE_";
 
 export class Texture2D implements IDisposable {
 
-    private context: WebGLRenderingContext;
+    private context: WebGL2RenderingContext;
 
     private texture: WebGLTexture;
     get Texture(): WebGLTexture { return this.texture; }
@@ -26,17 +26,17 @@ export class Texture2D implements IDisposable {
 
         this.texture = texture;
 
-        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, this.texture);
+        this.context.bindTexture(WebGL2RenderingContext.TEXTURE_2D, this.texture);
 
         if (pixelData !== undefined) {
-            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, pixelData);
-            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_S, WebGLRenderingContext.CLAMP_TO_EDGE);
-            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_T, WebGLRenderingContext.CLAMP_TO_EDGE);
-            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_MIN_FILTER, WebGLRenderingContext.LINEAR);
+            this.context.texImage2D(WebGL2RenderingContext.TEXTURE_2D, 0, WebGL2RenderingContext.RGBA, 1, 1, 0, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.UNSIGNED_BYTE, pixelData);
+            this.context.texParameteri(WebGL2RenderingContext.TEXTURE_2D, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext.CLAMP_TO_EDGE);
+            this.context.texParameteri(WebGL2RenderingContext.TEXTURE_2D, WebGL2RenderingContext.TEXTURE_WRAP_T, WebGL2RenderingContext.CLAMP_TO_EDGE);
+            this.context.texParameteri(WebGL2RenderingContext.TEXTURE_2D, WebGL2RenderingContext.TEXTURE_MIN_FILTER, WebGL2RenderingContext.LINEAR);
         }
         else if (url !== undefined) {
             // Get temporary texture while loading
-            this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, 1, 1, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+            this.context.texImage2D(WebGL2RenderingContext.TEXTURE_2D, 0, WebGL2RenderingContext.RGBA, 1, 1, 0, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
 
             this.image = new Image();
             this.image.addEventListener("load", this.FinishedLoadingTexture);
@@ -53,15 +53,15 @@ export class Texture2D implements IDisposable {
 
     private FinishedLoadingTexture = (ev: Event): void => {
 
-        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, this.texture);
-        this.context.texImage2D(WebGLRenderingContext.TEXTURE_2D, 0, WebGLRenderingContext.RGBA, WebGLRenderingContext.RGBA, WebGLRenderingContext.UNSIGNED_BYTE, this.image!);
+        this.context.bindTexture(WebGL2RenderingContext.TEXTURE_2D, this.texture);
+        this.context.texImage2D(WebGL2RenderingContext.TEXTURE_2D, 0, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.UNSIGNED_BYTE, this.image!);
 
         if (this.IsPowerOf2(this.image!.width) && this.IsPowerOf2(this.image!.height)) {
-            this.context.generateMipmap(WebGLRenderingContext.TEXTURE_2D);
+            this.context.generateMipmap(WebGL2RenderingContext.TEXTURE_2D);
         } else {
-            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_S, WebGLRenderingContext.CLAMP_TO_EDGE);
-            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_WRAP_T, WebGLRenderingContext.CLAMP_TO_EDGE);
-            this.context.texParameteri(WebGLRenderingContext.TEXTURE_2D, WebGLRenderingContext.TEXTURE_MIN_FILTER, WebGLRenderingContext.LINEAR);
+            this.context.texParameteri(WebGL2RenderingContext.TEXTURE_2D, WebGL2RenderingContext.TEXTURE_WRAP_S, WebGL2RenderingContext.CLAMP_TO_EDGE);
+            this.context.texParameteri(WebGL2RenderingContext.TEXTURE_2D, WebGL2RenderingContext.TEXTURE_WRAP_T, WebGL2RenderingContext.CLAMP_TO_EDGE);
+            this.context.texParameteri(WebGL2RenderingContext.TEXTURE_2D, WebGL2RenderingContext.TEXTURE_MIN_FILTER, WebGL2RenderingContext.LINEAR);
         }
     }
 

@@ -24,7 +24,7 @@ export const POINT_LIGHTS_COUNT_UNIFORM: string = "uPointLightsCount";
 
 export class Shader implements IDisposable {
 
-    private context: WebGLRenderingContext;
+    private context: WebGL2RenderingContext;
     private pipelineState: PipelineState;
 
     private program: WebGLProgram;
@@ -40,12 +40,12 @@ export class Shader implements IDisposable {
         this.context = scene.Game.GraphicsSystem.Context;
         this.pipelineState = scene.Game.GraphicsSystem.PipelineState;
 
-        const vertexShader: WebGLShader | null = this.CreateShader(WebGLRenderingContext.VERTEX_SHADER, vsSource);
+        const vertexShader: WebGLShader | null = this.CreateShader(WebGL2RenderingContext.VERTEX_SHADER, vsSource);
         if (vertexShader === null) {
             throw new Error();
         }
 
-        const fragmentShader: WebGLShader | null = this.CreateShader(WebGLRenderingContext.FRAGMENT_SHADER, fsSource);
+        const fragmentShader: WebGLShader | null = this.CreateShader(WebGL2RenderingContext.FRAGMENT_SHADER, fsSource);
         if (fragmentShader === null) {
             this.context.deleteShader(vertexShader);
             throw new Error();
@@ -199,15 +199,15 @@ export class Shader implements IDisposable {
         const shader: WebGLShader | null = this.context.createShader(type);
 
         if (shader === null) {
-            console.error(`Unable to create ${type === WebGLRenderingContext.VERTEX_SHADER ? "vertex" : "fragment"} shader.`);
+            console.error(`Unable to create ${type === WebGL2RenderingContext.VERTEX_SHADER ? "vertex" : "fragment"} shader.`);
             return null;
         }
 
         this.context.shaderSource(shader, source);
         this.context.compileShader(shader);
 
-        if (!this.context.getShaderParameter(shader, WebGLRenderingContext.COMPILE_STATUS)) {
-            console.error(`Error compiling the ${type === WebGLRenderingContext.VERTEX_SHADER ? "vertex" : "fragment"} shader: ${this.context.getShaderInfoLog(shader)}`);
+        if (!this.context.getShaderParameter(shader, WebGL2RenderingContext.COMPILE_STATUS)) {
+            console.error(`Error compiling the ${type === WebGL2RenderingContext.VERTEX_SHADER ? "vertex" : "fragment"} shader: ${this.context.getShaderInfoLog(shader)}`);
             this.context.deleteShader(shader);
             return null;
         }
@@ -235,7 +235,7 @@ export class Shader implements IDisposable {
         this.context.deleteShader(vertexShader);
         this.context.deleteShader(fragmentShader);
 
-        if (!this.context.getProgramParameter(shaderProgram, WebGLRenderingContext.LINK_STATUS)) {
+        if (!this.context.getProgramParameter(shaderProgram, WebGL2RenderingContext.LINK_STATUS)) {
             console.error("Unable to link shader program: " + this.context.getProgramInfoLog(shaderProgram));
             this.context.deleteProgram(shaderProgram);
             return null;

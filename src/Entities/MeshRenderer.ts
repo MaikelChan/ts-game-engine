@@ -4,7 +4,6 @@ import { Mesh, VertexFormat, ATTRIBUTE_INFO, VERTEX_POSITION_SIZE, VERTEX_COLOR_
 import { Material, VertexColoredMaterial, POSITION_ATTRIBUTE, COLOR_ATTRIBUTE } from "../Materials";
 import { IRenderable, IGlobalUniforms, IDisposable } from "../Interfaces";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
-import { GraphicsSystem } from "../Systems/Graphics/GraphicsSystem";
 import { FLOAT_SIZE } from "../Constants";
 import { Utils } from "../Utils";
 import { WireBoxMesh } from "../Meshes/WireBoxMesh";
@@ -14,8 +13,7 @@ import { IntersectionResults } from "../Math/Frustum";
 
 export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
-    private readonly graphicsSystem: GraphicsSystem;
-    private readonly context: WebGLRenderingContext;
+    private readonly context: WebGL2RenderingContext;
     private readonly pipelineState: PipelineState;
 
     private mesh: Mesh | undefined;
@@ -28,17 +26,16 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
     private aabb: BoundingBox;
 
-    private vao: WebGLVertexArrayObjectOES;
+    private vao: WebGLVertexArrayObject;
 
     constructor(scene: Scene, name: string) {
         super(scene, name);
 
-        this.graphicsSystem = scene.Game.GraphicsSystem;
-        this.context = this.graphicsSystem.Context;
-        this.pipelineState = this.graphicsSystem.PipelineState;
+        this.context = scene.Game.GraphicsSystem.Context;
+        this.pipelineState = scene.Game.GraphicsSystem.PipelineState;
 
-        let vao: WebGLVertexArrayObjectOES | null = this.graphicsSystem.Ext_VAO.createVertexArrayOES();
-        if (vao === null) throw new Error("Unable to create Vertex Attribute Object.");
+        let vao: WebGLVertexArrayObject | null = this.context.createVertexArray();
+        if (vao === null) throw new Error("Unable to create Vertex Array Object.");
         this.vao = vao;
         Utils.DebugName(this.vao, `${this.Name} VAO`);
 
@@ -48,7 +45,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
     }
 
     public Dispose(): void {
-        this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.vao);
+        this.context.deleteVertexArray(this.vao);
         this.DisposeBoundsDebug();
     }
 
@@ -64,7 +61,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         this.pipelineState.CurrentVAO = this.vao;
 
         if (this.mesh.IndexBuffer)
-            this.context.drawElements(this.mesh.MeshTopology, this.mesh.IndexCount, WebGLRenderingContext.UNSIGNED_SHORT, 0);
+            this.context.drawElements(this.mesh.MeshTopology, this.mesh.IndexCount, WebGL2RenderingContext.UNSIGNED_SHORT, 0);
         else
             this.context.drawArrays(this.mesh.MeshTopology, 0, this.mesh.VertexCount);
 
@@ -97,8 +94,8 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         if (this.material === undefined) return;
 
         this.pipelineState.CurrentVAO = this.vao;
-        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.mesh.VertexBuffer);
-        this.context.bindBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, this.mesh.IndexBuffer !== undefined ? this.mesh.IndexBuffer : null);
+        this.context.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.mesh.VertexBuffer);
+        this.context.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, this.mesh.IndexBuffer !== undefined ? this.mesh.IndexBuffer : null);
 
         const vertexFormat: VertexFormat = this.mesh.VertexFormat;
 
@@ -112,7 +109,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
             if ((vertexFormat & ATTRIBUTE_INFO[f].vertexFormat) !== 0) {
                 let attributeLocation: number | undefined = this.material.Shader.Attributes.get(ATTRIBUTE_INFO[f].name);
                 if (attributeLocation !== undefined) {
-                    this.context.vertexAttribPointer(attributeLocation, ATTRIBUTE_INFO[f].size, WebGLRenderingContext.FLOAT, false, stride, offset);
+                    this.context.vertexAttribPointer(attributeLocation, ATTRIBUTE_INFO[f].size, WebGL2RenderingContext.FLOAT, false, stride, offset);
                     this.context.enableVertexAttribArray(attributeLocation);
                     offset += FLOAT_SIZE * ATTRIBUTE_INFO[f].size;
                 }
@@ -192,31 +189,31 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         // Create VAO
 
         if (this.aabbVAO !== undefined) {
-            this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.aabbVAO);
+            this.context.deleteVertexArray(this.aabbVAO);
         }
 
-        let vao: WebGLVertexArrayObjectOES | null = this.graphicsSystem.Ext_VAO.createVertexArrayOES();
-        if (vao === null) throw new Error("Unable to create bounding box Vertex Attribute Object.");
+        let vao: WebGLVertexArrayObjectOES | null = this.context.createVertexArray();
+        if (vao === null) throw new Error("Unable to create bounding box Vertex Array Object.");
         this.aabbVAO = vao;
         Utils.DebugName(this.aabbVAO, `${this.Name} bounding box VAO`);
 
         // Configure VAO
 
         this.pipelineState.CurrentVAO = this.aabbVAO;
-        this.context.bindBuffer(WebGLRenderingContext.ARRAY_BUFFER, this.aabbMesh.VertexBuffer);
-        this.context.bindBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, this.aabbMesh.IndexBuffer !== undefined ? this.aabbMesh.IndexBuffer : null);
+        this.context.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, this.aabbMesh.VertexBuffer);
+        this.context.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, this.aabbMesh.IndexBuffer !== undefined ? this.aabbMesh.IndexBuffer : null);
 
         let stride: number = (FLOAT_SIZE * VERTEX_POSITION_SIZE) + (FLOAT_SIZE * VERTEX_COLOR_SIZE);
 
         let attributeLocation: number | undefined = this.aabbMaterial.Shader.Attributes.get(POSITION_ATTRIBUTE);
         if (attributeLocation !== undefined) {
-            this.context.vertexAttribPointer(attributeLocation, VERTEX_POSITION_SIZE, WebGLRenderingContext.FLOAT, false, stride, 0);
+            this.context.vertexAttribPointer(attributeLocation, VERTEX_POSITION_SIZE, WebGL2RenderingContext.FLOAT, false, stride, 0);
             this.context.enableVertexAttribArray(attributeLocation);
         }
 
         attributeLocation = this.aabbMaterial.Shader.Attributes.get(COLOR_ATTRIBUTE);
         if (attributeLocation !== undefined) {
-            this.context.vertexAttribPointer(attributeLocation, VERTEX_COLOR_SIZE, WebGLRenderingContext.FLOAT, false, stride, FLOAT_SIZE * VERTEX_POSITION_SIZE);
+            this.context.vertexAttribPointer(attributeLocation, VERTEX_COLOR_SIZE, WebGL2RenderingContext.FLOAT, false, stride, FLOAT_SIZE * VERTEX_POSITION_SIZE);
             this.context.enableVertexAttribArray(attributeLocation);
         }
     }
@@ -239,13 +236,13 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         this.pipelineState.CurrentVAO = this.aabbVAO;
 
         if (this.aabbMesh.IndexBuffer)
-            this.context.drawElements(this.aabbMesh.MeshTopology, this.aabbMesh.IndexCount, WebGLRenderingContext.UNSIGNED_SHORT, 0);
+            this.context.drawElements(this.aabbMesh.MeshTopology, this.aabbMesh.IndexCount, WebGL2RenderingContext.UNSIGNED_SHORT, 0);
         else
             this.context.drawArrays(this.aabbMesh.MeshTopology, 0, this.aabbMesh.VertexCount);
     }
 
     private DisposeBoundsDebug(): void {
         if (this.aabbMesh !== undefined) this.aabbMesh.Dispose();
-        if (this.aabbVAO !== undefined) this.graphicsSystem.Ext_VAO.deleteVertexArrayOES(this.aabbVAO);
+        if (this.aabbVAO !== undefined) this.context.deleteVertexArray(this.aabbVAO);
     }
 }

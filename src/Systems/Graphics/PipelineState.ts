@@ -1,6 +1,5 @@
 import { vec4 } from "gl-matrix";
 import { Shader } from "../../Materials/Shader";
-import { GraphicsSystem } from "./GraphicsSystem";
 import { Texture2D } from "../..";
 
 export const enum FaceCullingModes { Front = 0x0404, Back = 0x0405, FrontAndBack = 0x0408 }
@@ -9,11 +8,9 @@ export const enum DepthFunctions { Never = 0x0200, Less = 0x0201, Equal = 0x0202
 export const TEXTURE_UNIT_AMOUNT: number = 32;
 
 export class PipelineState {
-    private graphicsSystem: GraphicsSystem;
-    private context: WebGLRenderingContext;
+    private context: WebGL2RenderingContext;
 
-    constructor(graphicsSystem: GraphicsSystem, context: WebGLRenderingContext) {
-        this.graphicsSystem = graphicsSystem;
+    constructor(context: WebGL2RenderingContext) {
         this.context = context;
     }
 
@@ -81,8 +78,8 @@ export class PipelineState {
     set CurrentVAO(vao: WebGLVertexArrayObjectOES | undefined) {
         if (this.currentVAO === vao) return;
         this.currentVAO = vao;
-        if (vao) this.graphicsSystem.Ext_VAO.bindVertexArrayOES(vao);
-        else this.graphicsSystem.Ext_VAO.bindVertexArrayOES(null);
+        if (vao) this.context.bindVertexArray(vao);
+        else this.context.bindVertexArray(null);
     }
 
     private currentTextureUnit: number = 0;
@@ -93,9 +90,9 @@ export class PipelineState {
 
         if (this.currentTextureUnit !== textureUnit) {
             this.currentTextureUnit = textureUnit;
-            this.context.activeTexture(WebGLRenderingContext.TEXTURE0 + textureUnit);
+            this.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit);
         }
 
-        this.context.bindTexture(WebGLRenderingContext.TEXTURE_2D, texture2D.Texture);
+        this.context.bindTexture(WebGL2RenderingContext.TEXTURE_2D, texture2D.Texture);
     }
 }

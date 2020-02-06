@@ -23,26 +23,28 @@ export class VertexColoredMaterial extends Material {
     }
 }
 
-const vsSource: string = `
-attribute vec3 ${POSITION_ATTRIBUTE};
-attribute vec4 ${COLOR_ATTRIBUTE};
+const vsSource: string = `#version 300 es
+in vec3 ${POSITION_ATTRIBUTE};
+in vec4 ${COLOR_ATTRIBUTE};
 
 uniform mat4 ${MODEL_MATRIX_UNIFORM};
 uniform mat4 ${VIEW_MATRIX_UNIFORM};
 uniform mat4 ${PROJECTION_MATRIX_UNIFORM};
 
-varying vec4 vColor;
+out vec4 vColor;
 
 void main() {
     gl_Position = ${PROJECTION_MATRIX_UNIFORM} * ${VIEW_MATRIX_UNIFORM} * ${MODEL_MATRIX_UNIFORM} * vec4(${POSITION_ATTRIBUTE}, 1);
     vColor = ${COLOR_ATTRIBUTE};
 }`;
 
-const fsSource: string = `
+const fsSource: string = `#version 300 es
 precision mediump float;
 
-varying vec4 vColor;    
+in vec4 vColor;
+
+out vec4 fragColor;
 
 void main() {
-    gl_FragColor = vColor;
+    fragColor = vColor;
 }`;
