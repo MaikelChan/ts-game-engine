@@ -73,13 +73,12 @@ export class PipelineState {
         else this.context.useProgram(null);
     }
 
-    private currentVAO: WebGLVertexArrayObjectOES | undefined;
-    get CurrentVAO(): WebGLVertexArrayObjectOES | undefined { return this.currentVAO; }
-    set CurrentVAO(vao: WebGLVertexArrayObjectOES | undefined) {
+    private currentVAO: WebGLVertexArrayObject | null = null;
+    get CurrentVAO(): WebGLVertexArrayObject | null { return this.currentVAO; }
+    set CurrentVAO(vao: WebGLVertexArrayObject | null) {
         if (this.currentVAO === vao) return;
         this.currentVAO = vao;
-        if (vao) this.context.bindVertexArray(vao);
-        else this.context.bindVertexArray(null);
+        this.context.bindVertexArray(vao);
     }
 
     private currentTextureUnit: number = 0;

@@ -131,7 +131,7 @@ export class Mesh implements IDisposable {
 
         // Make sure current VAO is null so we don't accidentally modify the element buffer of other VAO.
         // Unlike array buffers, element buffers are actually referenced directly in the VAO.
-        this.pipelineState.CurrentVAO = undefined;
+        this.pipelineState.CurrentVAO = null;
 
         this.indexCount = indices.length;
         this.context.bindBuffer(WebGL2RenderingContext.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
