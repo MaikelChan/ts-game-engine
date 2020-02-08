@@ -11,12 +11,12 @@ I'll work on this on my spare time, and it's not meant, by any means, to be used
 - Several basic mesh types like Triangle, Cube, Sphere and a configurable grid with X, Y and Z axis. It can also load a custom binary mesh format I called MDL, which allows to load complex meshes efficiently. Its data layout is ready to be sent as is to the GPU without any conversion or processing.
 - Textures.
 - Frustum culling.
+- GPU instancing.
 - It caches the WebGL pipeline state to avoid unnecessary state changes before each draw call.
 - Input Manager.
 
 ## Coming soon
 
-- GPU instancing.
 - More types of shaders and materials.
 
 ## Demo

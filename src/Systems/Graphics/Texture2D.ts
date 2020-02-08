@@ -1,23 +1,22 @@
 import { IDisposable } from "../../Interfaces";
 import { Scene } from "../..";
+import { PipelineState } from "./PipelineState";
 
 export const TEMPORARY_TEXTURE_NAME: string = "_TEMPORARY_TEXTURE_";
 
 export class Texture2D implements IDisposable {
 
     private context: WebGL2RenderingContext;
+    private pipelineState: PipelineState;
 
     private texture: WebGLTexture;
     get Texture(): WebGLTexture { return this.texture; }
 
     private image: HTMLImageElement | undefined;
-    // get Image(): HTMLImageElement | undefined { return this.image; }
-
-    // private pixelData: Uint8Array | undefined;
-    // get PixelData(): Uint8Array | undefined { return this.pixelData; }
 
     private constructor(scene: Scene, url: string | undefined, pixelData: Uint8Array | undefined) {
         this.context = scene.Game.GraphicsSystem.Context;
+        this.pipelineState = scene.Game.GraphicsSystem.PipelineState;
 
         const texture: WebGLTexture | null = this.context.createTexture();
         if (texture === null) {
@@ -26,7 +25,7 @@ export class Texture2D implements IDisposable {
 
         this.texture = texture;
 
-        this.context.bindTexture(WebGL2RenderingContext.TEXTURE_2D, this.texture);
+        this.pipelineState.BindTexture(this, 0);
 
         if (pixelData !== undefined) {
             this.context.texImage2D(WebGL2RenderingContext.TEXTURE_2D, 0, WebGL2RenderingContext.RGBA, 1, 1, 0, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.UNSIGNED_BYTE, pixelData);
@@ -53,7 +52,7 @@ export class Texture2D implements IDisposable {
 
     private FinishedLoadingTexture = (ev: Event): void => {
 
-        this.context.bindTexture(WebGL2RenderingContext.TEXTURE_2D, this.texture);
+        this.pipelineState.BindTexture(this, 0);
         this.context.texImage2D(WebGL2RenderingContext.TEXTURE_2D, 0, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.RGBA, WebGL2RenderingContext.UNSIGNED_BYTE, this.image!);
 
         if (this.IsPowerOf2(this.image!.width) && this.IsPowerOf2(this.image!.height)) {
