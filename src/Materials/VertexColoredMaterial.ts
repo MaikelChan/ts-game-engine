@@ -1,5 +1,6 @@
 import { Material } from "./Material";
-import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, UniformTypes } from "./Shader";
+import { UniformTypes } from "./Shader";
+import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, POSITION_ATTRIBUTE_LOCATION, COLOR_ATTRIBUTE_LOCATION } from "../Constants";
 import { IGlobalUniforms } from "../Interfaces";
 import { Scene } from "..";
 
@@ -7,9 +8,6 @@ export class VertexColoredMaterial extends Material {
 
     constructor(scene: Scene) {
         super(scene, vsSource, fsSource);
-
-        this.Shader.DefineAttribute(POSITION_ATTRIBUTE);
-        this.Shader.DefineAttribute(COLOR_ATTRIBUTE);
 
         this.Shader.DefineUniform(MODEL_MATRIX_UNIFORM, UniformTypes.Matrix4);
         this.Shader.DefineUniform(VIEW_MATRIX_UNIFORM, UniformTypes.Matrix4);
@@ -24,8 +22,8 @@ export class VertexColoredMaterial extends Material {
 }
 
 const vsSource: string = `#version 300 es
-in vec3 ${POSITION_ATTRIBUTE};
-in vec4 ${COLOR_ATTRIBUTE};
+layout(location = ${POSITION_ATTRIBUTE_LOCATION}) in vec3 ${POSITION_ATTRIBUTE};
+layout(location = ${COLOR_ATTRIBUTE_LOCATION}) in vec4 ${COLOR_ATTRIBUTE};
 
 uniform mat4 ${MODEL_MATRIX_UNIFORM};
 uniform mat4 ${VIEW_MATRIX_UNIFORM};

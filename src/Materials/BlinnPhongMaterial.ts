@@ -1,8 +1,8 @@
 import { Material } from "./Material";
-import { POSITION_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, UniformTypes, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, NORMAL_MATRIX_UNIFORM, VIEW_POSITION_UNIFORM, AMBIENT_LIGHT_UNIFORM, POINT_LIGHTS_DATA_UNIFORM, POINT_LIGHTS_COUNT_UNIFORM } from "./Shader";
+import { UniformTypes } from "./Shader";
 import { vec3, vec2 } from "gl-matrix";
 import { IGlobalUniforms } from "../Interfaces";
-import { MAX_LIGHTS, LIGHT_DATA_SIZE } from "../Constants";
+import { MAX_LIGHTS, LIGHT_DATA_SIZE, POSITION_ATTRIBUTE_LOCATION, COLOR_ATTRIBUTE_LOCATION, NORMAL_ATTRIBUTE_LOCATION, UV0_ATTRIBUTE_LOCATION, POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, NORMAL_MATRIX_UNIFORM, VIEW_POSITION_UNIFORM, AMBIENT_LIGHT_UNIFORM, POINT_LIGHTS_DATA_UNIFORM, POINT_LIGHTS_COUNT_UNIFORM } from "../Constants";
 import { Texture2D } from "../Systems/Graphics/Texture2D";
 import { Scene } from "..";
 
@@ -29,11 +29,6 @@ export class BlinnPhongMaterial extends Material {
     constructor(scene: Scene) {
         super(scene, vsSource, fsSource);
 
-        this.Shader.DefineAttribute(POSITION_ATTRIBUTE);
-        this.Shader.DefineAttribute(COLOR_ATTRIBUTE);
-        this.Shader.DefineAttribute(NORMAL_ATTRIBUTE);
-        this.Shader.DefineAttribute(UV0_ATTRIBUTE);
-
         this.Shader.DefineUniform(MODEL_MATRIX_UNIFORM, UniformTypes.Matrix4);
         this.Shader.DefineUniform(VIEW_MATRIX_UNIFORM, UniformTypes.Matrix4);
         this.Shader.DefineUniform(PROJECTION_MATRIX_UNIFORM, UniformTypes.Matrix4);
@@ -45,9 +40,9 @@ export class BlinnPhongMaterial extends Material {
         this.Shader.DefineUniform(POINT_LIGHTS_COUNT_UNIFORM, UniformTypes.Int1);
 
         this.Shader.DefineUniform("uColor", UniformTypes.Float3);
-        this.Shader.DefineUniform("mainTexture", UniformTypes.Sampler2D);
+        this.Shader.DefineUniform("uMainTexture", UniformTypes.Sampler2D);
         this.Shader.DefineUniform("uSpecularPower", UniformTypes.Float2);
-        this.Shader.DefineUniform("glossTexture", UniformTypes.Sampler2D);
+        this.Shader.DefineUniform("uGlossTexture", UniformTypes.Sampler2D);
 
         this.color = vec3.fromValues(1, 1, 1);
         this.specularPower = vec2.fromValues(1, 32);
@@ -68,16 +63,16 @@ export class BlinnPhongMaterial extends Material {
 
         this.Shader.SetFloat3Uniform("uColor", this.color);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
-        this.Shader.SetSampler2DUniform("mainTexture", 0, this.mainTexture);
-        this.Shader.SetSampler2DUniform("glossTexture", 1, this.glossTexture);
+        this.Shader.SetSampler2DUniform("uMainTexture", 0, this.mainTexture);
+        this.Shader.SetSampler2DUniform("uGlossTexture", 1, this.glossTexture);
     }
 }
 
 const vsSource: string = `#version 300 es
-in vec3 ${POSITION_ATTRIBUTE};
-in vec4 ${COLOR_ATTRIBUTE};
-in vec3 ${NORMAL_ATTRIBUTE};
-in vec2 ${UV0_ATTRIBUTE};
+layout(location = ${POSITION_ATTRIBUTE_LOCATION}) in vec3 ${POSITION_ATTRIBUTE};
+layout(location = ${COLOR_ATTRIBUTE_LOCATION}) in vec4 ${COLOR_ATTRIBUTE};
+layout(location = ${NORMAL_ATTRIBUTE_LOCATION}) in vec3 ${NORMAL_ATTRIBUTE};
+layout(location = ${UV0_ATTRIBUTE_LOCATION}) in vec2 ${UV0_ATTRIBUTE};
 
 uniform mat4 ${MODEL_MATRIX_UNIFORM};
 uniform mat4 ${VIEW_MATRIX_UNIFORM};
@@ -112,9 +107,9 @@ uniform vec4 ${POINT_LIGHTS_DATA_UNIFORM}[${MAX_LIGHTS} * ${LIGHT_DATA_SIZE}];
 uniform int ${POINT_LIGHTS_COUNT_UNIFORM};
 
 uniform vec3 uColor;
-uniform sampler2D mainTexture;
+uniform sampler2D uMainTexture;
 uniform vec2 uSpecularPower;
-uniform sampler2D glossTexture;
+uniform sampler2D uGlossTexture;
 
 out vec4 fragColor;
 
@@ -143,8 +138,8 @@ void main() {
     vec3 normalizedWorldNormal = normalize(vWorldNormal);
 	vec3 viewDir = normalize(${VIEW_POSITION_UNIFORM} - vWorldPosition.xyz);
 
-	vec3 diffuseColor = (texture(mainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
-	float specularTex = texture(glossTexture, vUV0).x;
+	vec3 diffuseColor = (texture(uMainTexture, vUV0).rgb * vColor.rgb * uColor).rgb;
+	float specularTex = texture(uGlossTexture, vUV0).x;
 	float specularStrength = mix(0.25, uSpecularPower.x, specularTex);
 	float specularPower = mix(1.0, uSpecularPower.y, specularTex);
 

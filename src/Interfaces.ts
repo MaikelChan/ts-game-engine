@@ -27,7 +27,15 @@ export interface IUniformData {
 export interface IAttributeTypeInfo {
     vertexFormat: VertexFormat;
     name: string;
+    location: number;
     size: number;
+}
+
+export interface IInstancedAttributeData {
+    location: number;
+    buffer: WebGLBuffer;
+    bufferSize: number;
+    instanceDataSize: number;
 }
 
 export interface IGlobalUniforms {

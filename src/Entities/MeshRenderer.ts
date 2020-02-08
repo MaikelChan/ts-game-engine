@@ -1,10 +1,10 @@
 import { Entity } from "./Entity";
 import { Scene } from "../Scene";
 import { Mesh, VertexFormat, ATTRIBUTE_INFO, VERTEX_POSITION_SIZE, VERTEX_COLOR_SIZE } from "../Meshes";
-import { Material, VertexColoredMaterial, POSITION_ATTRIBUTE, COLOR_ATTRIBUTE } from "../Materials";
+import { Material, VertexColoredMaterial } from "../Materials";
 import { IRenderable, IGlobalUniforms, IDisposable } from "../Interfaces";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
-import { FLOAT_SIZE } from "../Constants";
+import { FLOAT_SIZE, COLOR_ATTRIBUTE_LOCATION, POSITION_ATTRIBUTE_LOCATION } from "../Constants";
 import { Utils } from "../Utils";
 import { WireBoxMesh } from "../Meshes/WireBoxMesh";
 import { vec4, vec3, mat4 } from "gl-matrix";
@@ -13,20 +13,20 @@ import { IntersectionResults } from "../Math/Frustum";
 
 export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
-    private readonly context: WebGL2RenderingContext;
-    private readonly pipelineState: PipelineState;
+    protected readonly context: WebGL2RenderingContext;
+    protected readonly pipelineState: PipelineState;
 
-    private mesh: Mesh | undefined;
+    protected mesh: Mesh | undefined;
     get Mesh(): Mesh | undefined { return this.mesh; }
 
-    private material: Material | undefined;
+    protected material: Material | undefined;
     get Material(): Material | undefined { return this.material; }
 
     get IsRenderable(): boolean { return this.mesh !== undefined && this.material !== undefined; }
 
     private aabb: BoundingBox;
 
-    private vao: WebGLVertexArrayObject;
+    protected vao: WebGLVertexArrayObject;
 
     constructor(scene: Scene, name: string) {
         super(scene, name);
@@ -89,7 +89,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         this.UpdateVAO();
     }
 
-    private UpdateVAO(): void {
+    protected UpdateVAO(): void {
         if (this.mesh === undefined) return;
         if (this.material === undefined) return;
 
@@ -107,17 +107,14 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         let offset: number = 0;
         for (let f: number = 0; f < ATTRIBUTE_INFO.length; f++) {
             if ((vertexFormat & ATTRIBUTE_INFO[f].vertexFormat) !== 0) {
-                let attributeLocation: number | undefined = this.material.Shader.Attributes.get(ATTRIBUTE_INFO[f].name);
-                if (attributeLocation !== undefined) {
-                    this.context.vertexAttribPointer(attributeLocation, ATTRIBUTE_INFO[f].size, WebGL2RenderingContext.FLOAT, false, stride, offset);
-                    this.context.enableVertexAttribArray(attributeLocation);
-                    offset += FLOAT_SIZE * ATTRIBUTE_INFO[f].size;
-                }
+                this.context.vertexAttribPointer(ATTRIBUTE_INFO[f].location, ATTRIBUTE_INFO[f].size, WebGL2RenderingContext.FLOAT, false, stride, offset);
+                this.context.enableVertexAttribArray(ATTRIBUTE_INFO[f].location);
+                offset += FLOAT_SIZE * ATTRIBUTE_INFO[f].size;
             }
         }
     }
 
-    private GetGlobalUniformsObject(): IGlobalUniforms {
+    protected GetGlobalUniformsObject(): IGlobalUniforms {
         return {
             modelMatrix: this.Transform.ModelMatrix,
             viewMatrix: this.Scene.Camera.ViewMatrix,
@@ -132,7 +129,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
     // Bounds and Culling -----------------------------------------------------------------------------------------------------
 
-    private UpdateAABB(): void {
+    protected UpdateAABB(): void {
         if (this.mesh === undefined) return;
 
         let points: vec3[] = this.mesh.BoundingBox.GetPoints();
@@ -156,7 +153,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
         this.aabbMeshDirty = true;
     }
 
-    private IsCulled(): boolean {
+    protected IsCulled(): boolean {
         return this.Scene.Camera.Frustum.CheckBoundsIntersection(this.aabb) === IntersectionResults.Outside;
     }
 
@@ -164,7 +161,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
     private aabbMesh: WireBoxMesh | undefined;
     private aabbMaterial: VertexColoredMaterial | undefined;
-    private aabbVAO: WebGLVertexArrayObjectOES | undefined;
+    private aabbVAO: WebGLVertexArrayObject | undefined;
 
     private aabbMeshDirty: boolean = false;
 
@@ -192,7 +189,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
             this.context.deleteVertexArray(this.aabbVAO);
         }
 
-        let vao: WebGLVertexArrayObjectOES | null = this.context.createVertexArray();
+        let vao: WebGLVertexArrayObject | null = this.context.createVertexArray();
         if (vao === null) throw new Error("Unable to create bounding box Vertex Array Object.");
         this.aabbVAO = vao;
         Utils.DebugName(this.aabbVAO, `${this.Name} bounding box VAO`);
@@ -205,17 +202,11 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
         let stride: number = (FLOAT_SIZE * VERTEX_POSITION_SIZE) + (FLOAT_SIZE * VERTEX_COLOR_SIZE);
 
-        let attributeLocation: number | undefined = this.aabbMaterial.Shader.Attributes.get(POSITION_ATTRIBUTE);
-        if (attributeLocation !== undefined) {
-            this.context.vertexAttribPointer(attributeLocation, VERTEX_POSITION_SIZE, WebGL2RenderingContext.FLOAT, false, stride, 0);
-            this.context.enableVertexAttribArray(attributeLocation);
-        }
+        this.context.vertexAttribPointer(POSITION_ATTRIBUTE_LOCATION, VERTEX_POSITION_SIZE, WebGL2RenderingContext.FLOAT, false, stride, 0);
+        this.context.enableVertexAttribArray(POSITION_ATTRIBUTE_LOCATION);
 
-        attributeLocation = this.aabbMaterial.Shader.Attributes.get(COLOR_ATTRIBUTE);
-        if (attributeLocation !== undefined) {
-            this.context.vertexAttribPointer(attributeLocation, VERTEX_COLOR_SIZE, WebGL2RenderingContext.FLOAT, false, stride, FLOAT_SIZE * VERTEX_POSITION_SIZE);
-            this.context.enableVertexAttribArray(attributeLocation);
-        }
+        this.context.vertexAttribPointer(COLOR_ATTRIBUTE_LOCATION, VERTEX_COLOR_SIZE, WebGL2RenderingContext.FLOAT, false, stride, FLOAT_SIZE * VERTEX_POSITION_SIZE);
+        this.context.enableVertexAttribArray(COLOR_ATTRIBUTE_LOCATION);
     }
 
     private RenderBoundsDebug(globalUniforms: IGlobalUniforms): void {

@@ -6,22 +6,6 @@ import { Scene } from "../Scene";
 
 export const enum UniformTypes { Int1, Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D }
 
-export const POSITION_ATTRIBUTE: string = "aPosition";
-export const COLOR_ATTRIBUTE: string = "aColor";
-export const NORMAL_ATTRIBUTE: string = "aNormal";
-export const UV0_ATTRIBUTE: string = "aUV0";
-export const UV1_ATTRIBUTE: string = "aUV1";
-
-export const MODEL_MATRIX_UNIFORM: string = "uModelMatrix";
-export const VIEW_MATRIX_UNIFORM: string = "uViewMatrix";
-export const PROJECTION_MATRIX_UNIFORM: string = "uProjectionMatrix";
-export const NORMAL_MATRIX_UNIFORM: string = "uNormalMatrix";
-
-export const VIEW_POSITION_UNIFORM: string = "uViewPosition";
-export const AMBIENT_LIGHT_UNIFORM: string = "uAmbientLight";
-export const POINT_LIGHTS_DATA_UNIFORM: string = "uPointLightsData";
-export const POINT_LIGHTS_COUNT_UNIFORM: string = "uPointLightsCount";
-
 export class Shader implements IDisposable {
 
     private context: WebGL2RenderingContext;
@@ -30,8 +14,8 @@ export class Shader implements IDisposable {
     private program: WebGLProgram;
     get Program(): WebGLProgram { return this.program; }
 
-    private attributes: Map<string, number> = new Map<string, number>();
-    get Attributes(): Map<string, number> { return this.attributes };
+    private instancedAttributes: Map<string, number> = new Map<string, number>();
+    get InstancedAttributes(): Map<string, number> { return this.instancedAttributes };
 
     private uniforms: Map<string, IUniformData> = new Map<string, IUniformData>();
     get Uniforms(): Map<string, IUniformData> { return this.uniforms };
@@ -65,13 +49,13 @@ export class Shader implements IDisposable {
 
     // Attributes and Uniforms ------------------------------------------------------------------------------------------------
 
-    public DefineAttribute(name: string): void {
-        const location: number = this.context.getAttribLocation(this.program, name);
+    public DefineInstancedAttribute(name: string, location: number): void {
         if (location < 0) {
-            console.warn("Attribute not found: " + name);
+            console.error("Instanced attribute location not valid");
             return;
         }
-        this.attributes.set(name, location);
+
+        this.instancedAttributes.set(name, location);
     }
 
     public DefineUniform(name: string, type: UniformTypes): void {

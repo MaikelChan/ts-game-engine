@@ -1,5 +1,5 @@
 import { IDisposable, IAttributeTypeInfo } from "../Interfaces";
-import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, UV1_ATTRIBUTE } from "../Materials/Shader";
+import { POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, UV1_ATTRIBUTE, POSITION_ATTRIBUTE_LOCATION, UV1_ATTRIBUTE_LOCATION, UV0_ATTRIBUTE_LOCATION, NORMAL_ATTRIBUTE_LOCATION, COLOR_ATTRIBUTE_LOCATION } from "../Constants";
 import { PipelineState } from "../Systems/Graphics/PipelineState";
 import { Scene } from "../Scene";
 import { Utils } from "../Utils";
@@ -16,11 +16,11 @@ export const VERTEX_NORMAL_SIZE: number = 3; // X, Y, Z
 export const VERTEX_UV_SIZE: number = 2; // X, Y
 
 export const ATTRIBUTE_INFO: IAttributeTypeInfo[] = [
-    { vertexFormat: VertexFormat.Position, name: POSITION_ATTRIBUTE, size: VERTEX_POSITION_SIZE },
-    { vertexFormat: VertexFormat.Color, name: COLOR_ATTRIBUTE, size: VERTEX_COLOR_SIZE },
-    { vertexFormat: VertexFormat.Normal, name: NORMAL_ATTRIBUTE, size: VERTEX_NORMAL_SIZE },
-    { vertexFormat: VertexFormat.UV0, name: UV0_ATTRIBUTE, size: VERTEX_UV_SIZE },
-    { vertexFormat: VertexFormat.UV1, name: UV1_ATTRIBUTE, size: VERTEX_UV_SIZE }
+    { vertexFormat: VertexFormat.Position, name: POSITION_ATTRIBUTE, location: POSITION_ATTRIBUTE_LOCATION, size: VERTEX_POSITION_SIZE },
+    { vertexFormat: VertexFormat.Color, name: COLOR_ATTRIBUTE, location: COLOR_ATTRIBUTE_LOCATION, size: VERTEX_COLOR_SIZE },
+    { vertexFormat: VertexFormat.Normal, name: NORMAL_ATTRIBUTE, location: NORMAL_ATTRIBUTE_LOCATION, size: VERTEX_NORMAL_SIZE },
+    { vertexFormat: VertexFormat.UV0, name: UV0_ATTRIBUTE, location: UV0_ATTRIBUTE_LOCATION, size: VERTEX_UV_SIZE },
+    { vertexFormat: VertexFormat.UV1, name: UV1_ATTRIBUTE, location: UV1_ATTRIBUTE_LOCATION, size: VERTEX_UV_SIZE }
 ]
 
 export class Mesh implements IDisposable {
