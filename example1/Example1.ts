@@ -1,4 +1,5 @@
 import { Example1Game } from "./Example1Game";
+import { Example1Scene } from "./Example1Scene";
 import * as dat from "dat.gui";
 
 let canvas: HTMLCanvasElement = document.getElementById("mainCanvas") as HTMLCanvasElement;
@@ -12,22 +13,27 @@ UpdateRendererResolution();
 
 interface ISettings {
     showBounds: boolean;
+    instances: number;
 }
 
 function Load(): void {
-    const gui = new dat.GUI();
-    const settings: ISettings = { showBounds: false };
+    const gui = new dat.GUI({ width: 300 });
+    const settings: ISettings = { showBounds: false, instances: 160000 };
 
     let showBounds: dat.GUIController = gui.add(settings, "showBounds").name("Show Bounds");
-
     showBounds.onChange(function (value) {
         game.Settings.ShowBounds = value;
+    });
+
+    let instances: dat.GUIController = gui.add(settings, "instances", 0, 160000).name("Instances Amount");
+    instances.onChange(function (value) {
+        const scene: Example1Scene = game.Scene as Example1Scene;
+        scene.SetInstanceCount(value);
     });
 }
 
 function UpdateRendererResolution(): void {
-    let width: number = window.innerWidth;
-    let height: number = window.innerHeight;
+    let width: number = window.innerWidth; let height: number = window.innerHeight;
 
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;

@@ -1,9 +1,12 @@
 import { Scene, Materials, Meshes, Entities, Game, Texture2D, InputSystem, Keys } from "ts-game-engine";
-import { vec4, vec3, quat, vec2 } from "gl-matrix";
+import { vec4, vec3, quat, vec2, mat4 } from "gl-matrix";
 import { IDisposable } from "ts-game-engine/lib/Interfaces";
 
 const MOUSE_SENSITIVITY: number = 0.15;
 const MOVEMENT_SPEED: number = 10;
+
+const INSTANCE_COUNT_X: number = 400;
+const INSTANCE_COUNT_Z: number = 400;
 
 export class Example1Scene extends Scene {
 
@@ -18,6 +21,10 @@ export class Example1Scene extends Scene {
     private monkeyRenderer2: Entities.MeshRenderer;
     private monkeyRenderer3: Entities.MeshRenderer;
     private monkeyMesh: Meshes.MDLMesh;
+
+    private instancedMesh: Meshes.CubeMesh;
+    private instancedMaterial: Materials.VertexColoredInstancedMaterial;
+    private instancedRenderer: Entities.MeshRendererInstanced;
 
     private lightMesh: Meshes.SphereMesh;
 
@@ -61,6 +68,14 @@ export class Example1Scene extends Scene {
             this.monkeyRenderer3.SetMesh(this.monkeyMesh);
         });
 
+        this.instancedMesh = new Meshes.CubeMesh(this);
+        this.instancedMaterial = new Materials.VertexColoredInstancedMaterial(this);
+        this.instancedRenderer = new Entities.MeshRendererInstanced(this, "Instanced Renderer", INSTANCE_COUNT_X * INSTANCE_COUNT_Z);
+        this.instancedRenderer.SetMesh(this.instancedMesh);
+        this.instancedRenderer.SetMaterial(this.instancedMaterial);
+
+        this.CreateInstances();
+
         this.lightMesh = new Meshes.SphereMesh(this, 12, 6);
 
         this.customLights = [
@@ -93,6 +108,8 @@ export class Example1Scene extends Scene {
         this.AddEntity(this.monkeyRenderer2);
         this.AddEntity(this.monkeyRenderer3);
 
+        this.AddEntity(this.instancedRenderer);
+
         this.Camera.Transform.Position = vec3.fromValues(0, 4.5, 15);
 
         let cameraRotation: quat = quat.create();
@@ -119,6 +136,10 @@ export class Example1Scene extends Scene {
         this.monkeyRenderer3.Transform.Rotation = quat.fromEuler(monkey3Rotation, 0, -currentTime * 180, 0);
     }
 
+    public SetInstanceCount(instances: number) {
+        this.instancedRenderer.SetInstanceCount(instances);
+    }
+
     public Dispose(): void {
         this.gridRenderer.Dispose();
         this.gridMesh.Dispose();
@@ -128,11 +149,44 @@ export class Example1Scene extends Scene {
         this.monkeyRenderer3.Dispose();
         this.monkeyMesh.Dispose();
 
+        this.instancedMesh.Dispose();
+        this.instancedRenderer.Dispose();
+
         this.lightMesh.Dispose();
 
         for (let l: number = 0; l < this.customLights.length; l++) this.customLights[l].Dispose();
 
         super.Dispose();
+    }
+
+    private CreateInstances(): void {
+
+        const count: number = INSTANCE_COUNT_X * INSTANCE_COUNT_Z;
+        const data: Float32Array = new Float32Array(count * 16);
+
+        const matrix: mat4 = mat4.create();
+        const rotation: quat = quat.create();
+        const position: vec3 = vec3.create();
+        const scale: vec3 = vec3.fromValues(0.5, 0.5, 0.5);
+
+        let dataIndex: number = 0;
+
+        for (let z: number = 0; z < INSTANCE_COUNT_Z; z++) {
+            for (let x: number = 0; x < INSTANCE_COUNT_X; x++) {
+                position[0] = x - (INSTANCE_COUNT_X * 0.5);
+                position[1] = -5;
+                position[2] = z - (INSTANCE_COUNT_Z * 0.5);
+
+                mat4.fromRotationTranslationScale(matrix, rotation, position, scale);
+
+                for (let m: number = 0; m < 16; m++) {
+                    data[dataIndex] = matrix[m];
+                    dataIndex++;
+                }
+            }
+        }
+
+        this.instancedRenderer.SetMatrices(count, data);
     }
 
     private ProcessInput(deltaTime: number): void {
