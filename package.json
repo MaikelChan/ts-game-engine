@@ -1,6 +1,6 @@
 {
     "name": "ts-game-engine",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "keywords": [
