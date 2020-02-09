@@ -1,12 +1,12 @@
-import { Scene, Materials, Meshes, Entities, Game, Texture2D, InputSystem, Keys } from "ts-game-engine";
+import { Scene, Materials, Meshes, Entities, Game, Textures, InputSystem, Keys } from "ts-game-engine";
 import { vec4, vec3, quat, vec2, mat4 } from "gl-matrix";
-import { IDisposable } from "ts-game-engine/lib/Interfaces";
+import { IDisposable, ITextureCubeImageURLs } from "ts-game-engine/lib/Interfaces";
 
 const MOUSE_SENSITIVITY: number = 0.15;
 const MOVEMENT_SPEED: number = 10;
 
-const INSTANCE_COUNT_X: number = 400;
-const INSTANCE_COUNT_Z: number = 400;
+const INSTANCE_COUNT_X: number = 250;
+const INSTANCE_COUNT_Z: number = 250;
 
 export class Example1Scene extends Scene {
 
@@ -26,6 +26,10 @@ export class Example1Scene extends Scene {
     private instancedMaterial: Materials.VertexColoredInstancedMaterial;
     private instancedRenderer: Entities.MeshRendererInstanced;
 
+    private skyMesh: Meshes.QuadMesh;
+    private skyMaterial: Materials.SkyboxMaterial;
+    private skyRenderer: Entities.MeshRenderer;
+
     private lightMesh: Meshes.SphereMesh;
 
     private customLights: CustomLight[];
@@ -43,18 +47,18 @@ export class Example1Scene extends Scene {
 
         this.monkeyMaterial1 = new Materials.BlinnPhongMaterial(this);
         this.monkeyMaterial1.Color = vec3.fromValues(1, 1, 1);
-        this.monkeyMaterial1.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
-        this.monkeyMaterial1.GlossTexture = Texture2D.Get(this, "./Tiles-Gloss.png");
+        this.monkeyMaterial1.MainTexture = Textures.Texture2D.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial1.GlossTexture = Textures.Texture2D.Get(this, "./Tiles-Gloss.png");
 
         this.monkeyMaterial2 = new Materials.BlinnPhongMaterial(this);
         this.monkeyMaterial2.Color = vec3.fromValues(0, 1, 0);
-        this.monkeyMaterial2.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
-        this.monkeyMaterial2.GlossTexture = Texture2D.Get(this, "./Tiles-Gloss.png");
+        this.monkeyMaterial2.MainTexture = Textures.Texture2D.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial2.GlossTexture = Textures.Texture2D.Get(this, "./Tiles-Gloss.png");
 
         this.monkeyMaterial3 = new Materials.BlinnPhongMaterial(this);
         this.monkeyMaterial3.Color = vec3.fromValues(1, 0, 0);
-        this.monkeyMaterial3.MainTexture = Texture2D.Get(this, "./Tiles-Diff.png");
-        this.monkeyMaterial3.GlossTexture = Texture2D.Get(this, "./Tiles-Gloss.png");
+        this.monkeyMaterial3.MainTexture = Textures.Texture2D.Get(this, "./Tiles-Diff.png");
+        this.monkeyMaterial3.GlossTexture = Textures.Texture2D.Get(this, "./Tiles-Gloss.png");
 
         this.monkeyRenderer1 = new Entities.MeshRenderer(this, "Monkey 1");
         this.monkeyRenderer2 = new Entities.MeshRenderer(this, "Monkey 2");
@@ -73,6 +77,21 @@ export class Example1Scene extends Scene {
         this.instancedRenderer = new Entities.MeshRendererInstanced(this, "Instanced Renderer", INSTANCE_COUNT_X * INSTANCE_COUNT_Z);
         this.instancedRenderer.SetMesh(this.instancedMesh);
         this.instancedRenderer.SetMaterial(this.instancedMaterial);
+
+        this.skyMesh = new Meshes.QuadMesh(this);
+        this.skyMaterial = new Materials.SkyboxMaterial(this);
+        const cubeTextures: ITextureCubeImageURLs = {
+            positiveX: "./px.jpg",
+            negativeX: "./nx.jpg",
+            positiveY: "./py.jpg",
+            negativeY: "./ny.jpg",
+            positiveZ: "./pz.jpg",
+            negativeZ: "./nz.jpg"
+        }
+        this.skyMaterial.SkyboxTexture = Textures.TextureCube.Get(this, cubeTextures);
+        this.skyRenderer = new Entities.MeshRenderer(this, "Sky Renderer", false);
+        this.skyRenderer.SetMesh(this.skyMesh);
+        this.skyRenderer.SetMaterial(this.skyMaterial);
 
         this.CreateInstances();
 
@@ -109,6 +128,8 @@ export class Example1Scene extends Scene {
         this.AddEntity(this.monkeyRenderer3);
 
         this.AddEntity(this.instancedRenderer);
+
+        this.AddEntity(this.skyRenderer);
 
         this.Camera.Transform.Position = vec3.fromValues(0, 4.5, 15);
 
@@ -152,6 +173,9 @@ export class Example1Scene extends Scene {
         this.instancedMesh.Dispose();
         this.instancedRenderer.Dispose();
 
+        this.skyMesh.Dispose();
+        this.skyRenderer.Dispose();
+
         this.lightMesh.Dispose();
 
         for (let l: number = 0; l < this.customLights.length; l++) this.customLights[l].Dispose();
@@ -173,9 +197,9 @@ export class Example1Scene extends Scene {
 
         for (let z: number = 0; z < INSTANCE_COUNT_Z; z++) {
             for (let x: number = 0; x < INSTANCE_COUNT_X; x++) {
-                position[0] = x - (INSTANCE_COUNT_X * 0.5);
+                position[0] = (x - (INSTANCE_COUNT_X * 0.5)) * 2;
                 position[1] = -5;
-                position[2] = z - (INSTANCE_COUNT_Z * 0.5);
+                position[2] = (z - (INSTANCE_COUNT_Z * 0.5)) * 2;
 
                 mat4.fromRotationTranslationScale(matrix, rotation, position, scale);
 

@@ -18,14 +18,14 @@ interface ISettings {
 
 function Load(): void {
     const gui = new dat.GUI({ width: 300 });
-    const settings: ISettings = { showBounds: false, instances: 160000 };
+    const settings: ISettings = { showBounds: false, instances: 62500 };
 
     let showBounds: dat.GUIController = gui.add(settings, "showBounds").name("Show Bounds");
     showBounds.onChange(function (value) {
         game.Settings.ShowBounds = value;
     });
 
-    let instances: dat.GUIController = gui.add(settings, "instances", 0, 160000).name("Instances Amount");
+    let instances: dat.GUIController = gui.add(settings, "instances", 0, 62500).name("Instances Amount");
     instances.onChange(function (value) {
         const scene: Example1Scene = game.Scene as Example1Scene;
         scene.SetInstanceCount(value);
