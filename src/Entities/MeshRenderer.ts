@@ -13,6 +13,8 @@ import { IntersectionResults } from "../Math/Frustum";
 
 export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
+    protected readonly culling: boolean;
+
     protected readonly context: WebGL2RenderingContext;
     protected readonly pipelineState: PipelineState;
 
@@ -28,8 +30,10 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
 
     protected vao: WebGLVertexArrayObject;
 
-    constructor(scene: Scene, name: string) {
+    constructor(scene: Scene, name: string, culling: boolean = true) {
         super(scene, name);
+
+        this.culling = culling;
 
         this.context = scene.Game.GraphicsSystem.Context;
         this.pipelineState = scene.Game.GraphicsSystem.PipelineState;
@@ -119,6 +123,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
             modelMatrix: this.Transform.ModelMatrix,
             viewMatrix: this.Scene.Camera.ViewMatrix,
             projectionMatrix: this.Scene.Camera.ProjectionMatrix,
+            viewDirectionProjectionInverseMatrix: this.Scene.Camera.ViewDirectionProjectionInverseMatrix,
             normalMatrix: this.Transform.NormalMatrix,
             viewPosition: this.Scene.Camera.Transform.Position,
             ambientLight: this.Scene.AmbientLight,
@@ -130,6 +135,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
     // Bounds and Culling -----------------------------------------------------------------------------------------------------
 
     protected UpdateAABB(): void {
+        if (!this.culling) return;
         if (this.mesh === undefined) return;
 
         let points: vec3[] = this.mesh.BoundingBox.GetPoints();
@@ -154,6 +160,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
     }
 
     protected IsCulled(): boolean {
+        if (!this.culling) return false;
         return this.Scene.Camera.Frustum.CheckBoundsIntersection(this.aabb) === IntersectionResults.Outside;
     }
 
@@ -168,6 +175,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
     private readonly aabbColor: vec4 = vec4.fromValues(0.1, 1, 0.45, 1);
 
     private CreateBoundsDebug(): void {
+        if (!this.culling) return;
 
         // Create mesh
 
@@ -210,6 +218,7 @@ export class MeshRenderer extends Entity implements IRenderable, IDisposable {
     }
 
     private RenderBoundsDebug(globalUniforms: IGlobalUniforms): void {
+        if (!this.culling) return;
         if (!this.Scene.Game.Settings.ShowBounds) return;
         if (this.aabbMesh === undefined) return;
         if (this.aabbMaterial === undefined) return;

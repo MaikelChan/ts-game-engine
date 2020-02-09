@@ -13,7 +13,7 @@ export class MeshRendererInstanced extends MeshRenderer {
     private instancedBuffers: Map<string, IInstancedAttributeData>;
 
     constructor(scene: Scene, name: string, maxInstances: number) {
-        super(scene, name);
+        super(scene, name, false);
 
         this.maxInstances = maxInstances;
         this.instances = 0;

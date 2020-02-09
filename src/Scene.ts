@@ -34,7 +34,7 @@ export abstract class Scene implements IDisposable {
         this.game.GraphicsSystem.PipelineState.FaceCulling = true;
         this.game.GraphicsSystem.PipelineState.FaceCullingMode = FaceCullingModes.Back;
         this.game.GraphicsSystem.PipelineState.DepthTest = true;
-        this.game.GraphicsSystem.PipelineState.DepthFunction = DepthFunctions.Less;
+        this.game.GraphicsSystem.PipelineState.DepthFunction = DepthFunctions.LEqual;
 
         this.camera = new Camera(this, "Main Camera");
         this.ClearColor = vec4.fromValues(0, 0, 0, 0);

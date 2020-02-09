@@ -23,11 +23,15 @@ export class Camera extends Entity {
     private projectionMatrix: mat4;
     get ProjectionMatrix(): mat4 { return this.projectionMatrix; }
 
+    private viewDirectionProjectionInverseMatrix: mat4;
+    get ViewDirectionProjectionInverseMatrix(): mat4 { return this.viewDirectionProjectionInverseMatrix; }
+
     private frustum: Frustum;
     get Frustum(): Frustum { return this.frustum; }
 
     private isViewMatrixDirty: boolean;
     private isProjectionMatrixDirty: boolean;
+    private isViewDirectionProjectionDirty: boolean;
     private isFrustumDirty: boolean;
 
     constructor(scene: Scene, name: string) {
@@ -39,11 +43,13 @@ export class Camera extends Entity {
 
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
+        this.viewDirectionProjectionInverseMatrix = mat4.create();
 
         this.frustum = new Frustum();
 
         this.isViewMatrixDirty = true;
         this.isProjectionMatrixDirty = true;
+        this.isViewDirectionProjectionDirty = true;
         this.isFrustumDirty = true;
 
         this.Transform.OnTransformChange = () => this.isViewMatrixDirty = true;
@@ -54,6 +60,7 @@ export class Camera extends Entity {
 
         if (this.isViewMatrixDirty) this.UpdateViewMatrix();
         if (this.isProjectionMatrixDirty) this.UpdateProjectionMatrix();
+        if (this.isViewDirectionProjectionDirty) this.UpdateViewDirectionProjectionMatrices();
         if (this.isFrustumDirty) this.UpdateFrustum();
     }
 
@@ -66,16 +73,30 @@ export class Camera extends Entity {
         let target: vec3 = vec3.create();
         vec3.add(target, position, this.Transform.Forward);
         mat4.lookAt(this.viewMatrix, position, target, this.Transform.Up);
-        this.isFrustumDirty = true;
 
+        this.isViewDirectionProjectionDirty = true;
+        this.isFrustumDirty = true;
         this.isViewMatrixDirty = false;
     }
 
     private UpdateProjectionMatrix(): void {
         mat4.perspective(this.projectionMatrix, glMatrix.toRadian(this.fov), this.Scene.Game.GraphicsSystem.AspectRatio, this.near, this.far);
-        this.isFrustumDirty = true;
 
+        this.isViewDirectionProjectionDirty = true;
+        this.isFrustumDirty = true;
         this.isProjectionMatrixDirty = false;
+    }
+
+    private UpdateViewDirectionProjectionMatrices(): void {
+        mat4.copy(this.viewDirectionProjectionInverseMatrix, this.viewMatrix);
+        this.viewDirectionProjectionInverseMatrix[12] = 0;
+        this.viewDirectionProjectionInverseMatrix[13] = 0;
+        this.viewDirectionProjectionInverseMatrix[14] = 0;
+
+        mat4.multiply(this.viewDirectionProjectionInverseMatrix, this.projectionMatrix, this.viewDirectionProjectionInverseMatrix);
+        mat4.invert(this.viewDirectionProjectionInverseMatrix, this.viewDirectionProjectionInverseMatrix);
+
+        this.isViewDirectionProjectionDirty = false;
     }
 
     private UpdateFrustum(): void {

@@ -1,6 +1,6 @@
 import { vec4 } from "gl-matrix";
 import { Shader } from "../../Materials/Shader";
-import { Texture2D } from "../..";
+import { Texture, TextureTypes } from "../../Textures/Texture";
 
 export const enum FaceCullingModes { Front = 0x0404, Back = 0x0405, FrontAndBack = 0x0408 }
 export const enum DepthFunctions { Never = 0x0200, Less = 0x0201, Equal = 0x0202, LEqual = 0x0203, Greater = 0x0204, NotEqual = 0x0205, GEqual = 0x0206, Always = 0x0207 }
@@ -82,16 +82,19 @@ export class PipelineState {
     }
 
     private currentTextureUnit: number = 0;
-    private textureUnits: Texture2D[] = new Array(TEXTURE_UNIT_AMOUNT);
-    public BindTexture(texture2D: Texture2D, textureUnit: number): void {
-        if (this.textureUnits[textureUnit] === texture2D) return;
-        this.textureUnits[textureUnit] = texture2D;
+    private SetCurrentTextureUnit(textureUnit: number) {
+        if (this.currentTextureUnit === textureUnit) return;
+        this.currentTextureUnit = textureUnit;
+        this.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit);
+    }
 
-        if (this.currentTextureUnit !== textureUnit) {
-            this.currentTextureUnit = textureUnit;
-            this.context.activeTexture(WebGL2RenderingContext.TEXTURE0 + textureUnit);
-        }
+    private textureUnits: Texture[] = new Array(TEXTURE_UNIT_AMOUNT);
+    public BindTexture(type: TextureTypes, texture: Texture, textureUnit: number): void {
+        if (this.textureUnits[textureUnit] === texture) return;
+        this.textureUnits[textureUnit] = texture;
 
-        this.context.bindTexture(WebGL2RenderingContext.TEXTURE_2D, texture2D.Texture);
+        this.SetCurrentTextureUnit(textureUnit);
+
+        this.context.bindTexture(type, texture.Texture);
     }
 }

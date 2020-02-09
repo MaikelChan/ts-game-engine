@@ -2,7 +2,7 @@ import { Scene } from "./Scene";
 import { IDisposable } from "./Interfaces";
 import { GraphicsSystem } from "./Systems/Graphics/GraphicsSystem";
 import { Shader } from "./Materials";
-import { Texture2D } from "./Systems/Graphics/Texture2D";
+import { Texture2D } from "./Textures/Texture2D";
 import { Settings } from "./Settings";
 import { InputSystem } from "./Systems/Input/InputSystem";
 
@@ -28,7 +28,7 @@ export abstract class Game implements IDisposable {
 
     constructor(canvas: HTMLCanvasElement) {
         this.graphicsSystem = new GraphicsSystem(canvas);
-        this.inputSystem = new InputSystem();
+        this.inputSystem = new InputSystem(canvas);
         this.settings = new Settings();
 
         this.shouldUpdate = false;

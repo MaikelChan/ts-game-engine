@@ -3,8 +3,9 @@ import { UniformTypes } from "./Shader";
 import { vec3, vec2 } from "gl-matrix";
 import { IGlobalUniforms } from "../Interfaces";
 import { MAX_LIGHTS, LIGHT_DATA_SIZE, POSITION_ATTRIBUTE_LOCATION, COLOR_ATTRIBUTE_LOCATION, NORMAL_ATTRIBUTE_LOCATION, UV0_ATTRIBUTE_LOCATION, POSITION_ATTRIBUTE, COLOR_ATTRIBUTE, NORMAL_ATTRIBUTE, UV0_ATTRIBUTE, MODEL_MATRIX_UNIFORM, VIEW_MATRIX_UNIFORM, PROJECTION_MATRIX_UNIFORM, NORMAL_MATRIX_UNIFORM, VIEW_POSITION_UNIFORM, AMBIENT_LIGHT_UNIFORM, POINT_LIGHTS_DATA_UNIFORM, POINT_LIGHTS_COUNT_UNIFORM } from "../Constants";
-import { Texture2D } from "../Systems/Graphics/Texture2D";
+import { Texture2D } from "../Textures/Texture2D";
 import { Scene } from "..";
+import { TextureTypes } from "../Textures/Texture";
 
 export class BlinnPhongMaterial extends Material {
 
@@ -63,8 +64,8 @@ export class BlinnPhongMaterial extends Material {
 
         this.Shader.SetFloat3Uniform("uColor", this.color);
         this.Shader.SetFloat2Uniform("uSpecularPower", this.specularPower);
-        this.Shader.SetSampler2DUniform("uMainTexture", 0, this.mainTexture);
-        this.Shader.SetSampler2DUniform("uGlossTexture", 1, this.glossTexture);
+        this.Shader.SetSamplerUniform("uMainTexture", 0, this.mainTexture, TextureTypes.Texture2D);
+        this.Shader.SetSamplerUniform("uGlossTexture", 1, this.glossTexture, TextureTypes.Texture2D);
     }
 }
 

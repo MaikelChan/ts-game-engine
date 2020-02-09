@@ -25,6 +25,7 @@ export const INSTANCED_ATTRIBUTE_BASE_LOCATION: number = 5;
 export const MODEL_MATRIX_UNIFORM: string = "uModelMatrix";
 export const VIEW_MATRIX_UNIFORM: string = "uViewMatrix";
 export const PROJECTION_MATRIX_UNIFORM: string = "uProjectionMatrix";
+export const VIEW_DIRECTION_PROJECTION_INVERSE_MATRIX_UNIFORM: string = "uViewDirectionProjectionInverseMatrix";
 export const NORMAL_MATRIX_UNIFORM: string = "uNormalMatrix";
 
 export const VIEW_POSITION_UNIFORM: string = "uViewPosition";

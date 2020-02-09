@@ -1,10 +1,11 @@
 import { IDisposable, IUniformData } from "../Interfaces";
 import { mat4, vec3, mat3, vec2 } from "gl-matrix";
-import { Texture2D } from "../Systems/Graphics/Texture2D";
+import { Texture2D } from "../Textures/Texture2D";
 import { TEXTURE_UNIT_AMOUNT, PipelineState } from "../Systems/Graphics/PipelineState";
 import { Scene } from "../Scene";
+import { TextureTypes } from "../Textures/Texture";
 
-export const enum UniformTypes { Int1, Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D }
+export const enum UniformTypes { Int1, Float1, Float1Vector, Float2, Float2Vector, Float3, Float3Vector, Float4, Float4Vector, Matrix3, Matrix4, Sampler2D, SamplerCube }
 
 export class Shader implements IDisposable {
 
@@ -160,7 +161,7 @@ export class Shader implements IDisposable {
         this.context.uniformMatrix4fv(uniformData.location, false, value);
     }
 
-    public SetSampler2DUniform(uniformName: string, textureUnit: number, texture: Texture2D) {
+    public SetSamplerUniform(uniformName: string, textureUnit: number, texture: Texture2D, type: TextureTypes) {
         if (textureUnit < 0 || textureUnit >= TEXTURE_UNIT_AMOUNT) {
             console.error("Invalid texture unit value: " + textureUnit);
             return;
@@ -174,7 +175,7 @@ export class Shader implements IDisposable {
             this.context.uniform1i(uniformData.location, textureUnit);
         }
 
-        this.pipelineState.BindTexture(texture, textureUnit);
+        this.pipelineState.BindTexture(type, texture, textureUnit);
     }
 
     // Shader creation --------------------------------------------------------------------------------------------------------

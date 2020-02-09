@@ -6,6 +6,8 @@ enum KeyState { Up, Down, Held, Released };
 
 export class InputSystem extends BaseSystem {
 
+    private readonly canvas: HTMLCanvasElement;
+
     private readonly currentKeyStates: KeyState[];
     private readonly previousKeyStates: KeyState[];
 
@@ -18,8 +20,10 @@ export class InputSystem extends BaseSystem {
     get MousePosition(): vec2 { return this.currentMousePosition; }
     get MouseDeltaMovement(): vec2 { return this.mouseDeltaMovement; }
 
-    constructor() {
+    constructor(canvas: HTMLCanvasElement) {
         super();
+
+        this.canvas = canvas;
 
         this.currentKeyStates = new Array<KeyState>(Keys.COUNT);
         this.previousKeyStates = new Array<KeyState>(Keys.COUNT);
@@ -44,18 +48,18 @@ export class InputSystem extends BaseSystem {
         document.addEventListener("keydown", this.OnKeyDown, false);
         document.addEventListener("keyup", this.OnKeyUp, false);
 
-        document.addEventListener("mousedown", this.OnMouseDown, false);
-        document.addEventListener("mouseup", this.OnMouseUp, false);
-        document.addEventListener("mousemove", this.OnMouseMove, false);
+        this.canvas.addEventListener("mousedown", this.OnMouseDown, false);
+        this.canvas.addEventListener("mouseup", this.OnMouseUp, false);
+        this.canvas.addEventListener("mousemove", this.OnMouseMove, false);
     }
 
     public Dispose(): void {
         document.removeEventListener("keydown", this.OnKeyDown, false);
         document.removeEventListener("keyup", this.OnKeyUp, false);
 
-        document.removeEventListener("mousedown", this.OnMouseDown, false);
-        document.removeEventListener("mouseup", this.OnMouseUp, false);
-        document.removeEventListener("mousemove", this.OnMouseMove, false);
+        this.canvas.removeEventListener("mousedown", this.OnMouseDown, false);
+        this.canvas.removeEventListener("mouseup", this.OnMouseUp, false);
+        this.canvas.removeEventListener("mousemove", this.OnMouseMove, false);
     }
 
     public Update(): void {
